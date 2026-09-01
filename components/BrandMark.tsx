@@ -1,4 +1,4 @@
-/** blaugrana 竖条纹品牌标记：巴萨蓝 / 石榴红交替 */
+/** Blaugrana vertical stripes: alternating Barca blue and garnet. */
 export function BrandMark({ className = "" }: { className?: string }) {
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
@@ -16,7 +16,7 @@ export function BrandMark({ className = "" }: { className?: string }) {
         <div className="text-[15px] font-semibold tracking-tight text-ink">
           MLE AI Booster
         </div>
-        <div className="text-[11px] text-ink-muted">面试刷题 · AI 陪练</div>
+        <div className="text-[11px] text-ink-muted">Interview drills, AI-graded</div>
       </div>
     </div>
   );

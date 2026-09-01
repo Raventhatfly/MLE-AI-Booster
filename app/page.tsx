@@ -10,9 +10,10 @@ import { WeeklyBars } from "@/components/WeeklyBars";
 import { getDashboardData } from "@/lib/data";
 
 /**
- * 本页读数据库，因此必须禁用静态预渲染 —— 否则构建期就会去连库，
- * 违反「构建期绝不连数据库」的约束，云端和 CI 都会构建失败。
- * 见 README「运行形态：本地带数据库，云端不带」。
+ * This page reads the database, so static prerendering MUST stay off — otherwise
+ * the build would connect to the DB, violating the "never touch the database at
+ * build time" constraint and breaking both CI and the cloud build.
+ * See the "local has a DB, cloud does not" section in the README.
  */
 export const dynamic = "force-dynamic";
 
@@ -70,10 +71,10 @@ const IconClassifier = (
 );
 
 const NAV = [
-  { href: "/", label: "总览", active: true },
-  { href: "/books", label: "题本", active: false },
-  { href: "/wrong-answers", label: "错题库", active: false },
-  { href: "/classifier", label: "分类器", active: false },
+  { href: "/", label: "Overview", active: true },
+  { href: "/books", label: "Books", active: false },
+  { href: "/wrong-answers", label: "Mistakes", active: false },
+  { href: "/classifier", label: "Classifier", active: false },
 ];
 
 export default async function Home() {
@@ -104,7 +105,7 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-full flex-col bg-plane">
-      {/* ---------- 顶栏 ---------- */}
+      {/* ---------- Top bar ---------- */}
       <header className="sticky top-0 z-20 border-b border-hairline bg-surface/85 backdrop-blur-sm">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-5">
           <BrandMark />
@@ -130,31 +131,31 @@ export default async function Home() {
             {overview.streakDays > 0 ? (
               <span className="hidden items-center gap-1.5 rounded-full border border-brand-garnet/30 bg-brand-garnet/10 px-2.5 py-1 text-[11px] font-medium text-brand-garnet sm:inline-flex">
                 <span aria-hidden="true">🔥</span>
-                <span className="tnum">连续 {overview.streakDays} 天</span>
+                <span className="tnum">{overview.streakDays}-day streak</span>
               </span>
             ) : null}
             <Link
               href="/books"
               className="rounded-md bg-brand-blue px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-brand-blue-deep"
             >
-              开始刷题
+              Start practicing
             </Link>
           </div>
         </div>
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-6">
-        {/* 云端形态：没有数据库，不谎报个人进度 */}
+        {/* Cloud shape: no database, so do not fake personal progress */}
         {source === "seed" ? (
           <div className="mb-5 rounded-lg border border-brand-blue/25 bg-brand-blue/5 px-4 py-3 text-[12px] leading-relaxed text-ink-2">
-            <span className="font-medium text-brand-blue">只读演示模式</span>
-            ：当前环境未配置数据库，仅展示题库内容，
-            所有个人学习进度显示为 0。完整功能请在本地运行（
-            <code className="font-mono">npm run dev</code>）。
+            <span className="font-medium text-brand-blue">Read-only demo</span> — no
+            database is configured in this environment, so the question bank is shown
+            but all personal progress reads as zero. Run it locally for the full
+            experience (<code className="font-mono">npm run dev</code>).
           </div>
         ) : null}
 
-        {/* ---------- 今日计划 + KPI ---------- */}
+        {/* ---------- Today's goal + KPIs ---------- */}
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <div className="relative overflow-hidden rounded-xl border border-hairline bg-surface p-5">
             <span className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-brand-blue via-brand-blue to-brand-garnet" />
@@ -164,24 +165,24 @@ export default async function Home() {
                 target={todayPlan.target}
               />
               <div className="min-w-[180px] flex-1">
-                <h1 className="text-[17px] font-semibold text-ink">今日计划</h1>
+                <h1 className="text-[17px] font-semibold text-ink">Today&apos;s goal</h1>
                 <p className="mt-1 text-xs text-ink-2">
                   {todayPlan.finished >= todayPlan.target
-                    ? "今日目标已完成，可以继续加练"
-                    : `还差 ${todayPlan.target - todayPlan.finished} 题完成今日目标`}
+                    ? "Goal met for today — keep going if you want"
+                    : `${todayPlan.target - todayPlan.finished} more to hit today's goal`}
                 </p>
 
                 <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
                   <div>
-                    <dt className="text-[11px] text-ink-muted">连续打卡</dt>
+                    <dt className="text-[11px] text-ink-muted">Streak</dt>
                     <dd className="tnum mt-0.5 text-[15px] font-semibold text-ink">
-                      {todayPlan.streakDays} 天
+                      {todayPlan.streakDays} days
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[11px] text-ink-muted">今日用时</dt>
+                    <dt className="text-[11px] text-ink-muted">Time today</dt>
                     <dd className="tnum mt-0.5 text-[15px] font-semibold text-ink">
-                      {todayPlan.minutesSpent} 分钟
+                      {todayPlan.minutesSpent} min
                     </dd>
                   </div>
                 </dl>
@@ -191,13 +192,13 @@ export default async function Home() {
                     href="/books"
                     className="rounded-md bg-brand-blue px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-brand-blue-deep"
                   >
-                    {activeBook ? `继续《${activeBook.name}》` : "选择题本"}
+                    {activeBook ? `Continue ${activeBook.name}` : "Pick a book"}
                   </Link>
                   <Link
                     href="/classifier"
                     className="rounded-md border border-hairline px-3 py-1.5 text-[13px] font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
                   >
-                    随机一题
+                    Random question
                   </Link>
                 </div>
               </div>
@@ -206,21 +207,21 @@ export default async function Home() {
 
           <div className="grid grid-cols-2 gap-4">
             <StatTile
-              label="题库总量"
+              label="Questions in bank"
               value={String(overview.totalQuestions)}
-              unit="题"
+              unit=""
               hint={difficultyHint}
               accent="blue"
             />
             <StatTile
-              label="已掌握"
+              label="Mastered"
               value={String(overview.masteredQuestions)}
-              unit="题"
-              hint={"最近一次判定为正确 · 占 " + masteredPct + "%"}
+              unit=""
+              hint={"latest attempt graded correct · " + masteredPct + "% of bank"}
               accent="blue"
             />
             <StatTile
-              label="近 30 天正确率"
+              label="Accuracy (30d)"
               value={
                 overview.accuracy30d === null
                   ? "—"
@@ -228,38 +229,38 @@ export default async function Home() {
               }
               hint={
                 overview.accuracy30d === null
-                  ? "暂无作答记录"
-                  : "AI 批改判定为「正确」的比例"
+                  ? "no attempts yet"
+                  : "share graded Correct by the AI"
               }
               accent="garnet"
             />
             <StatTile
-              label="待复习错题"
+              label="To review"
               value={String(wrongAnswers.total)}
-              unit="题"
+              unit=""
               hint={
                 wrongAnswers.total === 0
-                  ? "暂无错题"
-                  : `错误 ${wrongAnswers.wrongCount} · 部分正确 ${wrongAnswers.partialCount}`
+                  ? "nothing to review"
+                  : `${wrongAnswers.wrongCount} incorrect · ${wrongAnswers.partialCount} partial`
               }
               accent="garnet"
             />
           </div>
         </section>
 
-        {/* ---------- 三大入口 ---------- */}
+        {/* ---------- The three primary entries ---------- */}
         <section className="mt-6">
           <h2 className="mb-3 text-[13px] font-semibold tracking-wide text-ink-muted">
-            核心模块
+            Modules
           </h2>
           <div className="grid gap-4 md:grid-cols-3">
             <ModuleCard
               href="/books"
-              title="MLE 题本"
-              subtitle="按主题成册刷题，每本独立记录进度"
+              title="Question Books"
+              subtitle="Themed collections, each tracking its own progress"
               icon={IconBook}
               metricValue={String(totalBookFinished)}
-              metricLabel={"/ " + totalBookQuestions + " 题已作答"}
+              metricLabel={"of " + totalBookQuestions + " attempted"}
               accent="blue"
               footer={
                 <div className="flex flex-col gap-2">
@@ -289,11 +290,11 @@ export default async function Home() {
 
             <ModuleCard
               href="/wrong-answers"
-              title="错题库"
-              subtitle="最近一次判定为错误或部分正确的题目，集中复习"
+              title="Mistake Bank"
+              subtitle="Questions whose latest attempt was incorrect or partial"
               icon={IconWrong}
               metricValue={String(wrongAnswers.total)}
-              metricLabel="题待复习"
+              metricLabel="to review"
               accent="garnet"
               footer={
                 wrongAnswers.byCategory.length > 0 ? (
@@ -311,18 +312,18 @@ export default async function Home() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-[11px] text-ink-muted">暂无错题记录</p>
+                  <p className="text-[11px] text-ink-muted">No mistakes recorded yet</p>
                 )
               }
             />
 
             <ModuleCard
               href="/classifier"
-              title="MLE 题库分类器"
-              subtitle="按知识分类 × 难度筛选题目，定位薄弱环节"
+              title="Question Classifier"
+              subtitle="Filter by knowledge area and difficulty to target weak spots"
               icon={IconClassifier}
               metricValue={String(categoryMastery.length)}
-              metricLabel={"个分类 · " + difficultyBreakdown.length + " 档难度"}
+              metricLabel={"areas · " + difficultyBreakdown.length + " difficulty tiers"}
               accent="crimson"
               footer={
                 <div className="flex flex-wrap gap-1.5">
@@ -340,33 +341,33 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* ---------- 掌握度 + 近 7 天 ---------- */}
+        {/* ---------- Mastery + last 7 days ---------- */}
         <section className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
           <div className="rounded-xl border border-hairline bg-surface p-5">
             <div className="mb-4 flex items-baseline justify-between gap-3">
-              <h2 className="text-[15px] font-semibold text-ink">分类掌握度</h2>
+              <h2 className="text-[15px] font-semibold text-ink">Mastery by area</h2>
               <Link
                 href="/classifier"
                 className="text-[12px] text-brand-blue hover:underline"
               >
-                去分类器 →
+                Classifier →
               </Link>
             </div>
             <MasteryBars data={categoryMastery} />
           </div>
 
           <div className="rounded-xl border border-hairline bg-surface p-5">
-            <h2 className="mb-1 text-[15px] font-semibold text-ink">刷题趋势</h2>
+            <h2 className="mb-1 text-[15px] font-semibold text-ink">Activity</h2>
             <WeeklyBars data={weeklyActivity} />
           </div>
         </section>
 
-        {/* ---------- 最近作答 ---------- */}
+        {/* ---------- Recent attempts ---------- */}
         <section className="mt-6">
           <div className="rounded-xl border border-hairline bg-surface p-5">
             <div className="mb-4 flex items-baseline justify-between gap-3">
-              <h2 className="text-[15px] font-semibold text-ink">最近作答</h2>
-              <span className="text-[12px] text-ink-muted">AI 批改结果</span>
+              <h2 className="text-[15px] font-semibold text-ink">Recent attempts</h2>
+              <span className="text-[12px] text-ink-muted">AI grading</span>
             </div>
             {recentAttempts.length > 0 ? (
               <ul className="divide-y divide-hairline">
@@ -391,15 +392,15 @@ export default async function Home() {
               </ul>
             ) : (
               <p className="py-6 text-center text-[12px] text-ink-muted">
-                还没有作答记录。从题本里挑一道题开始吧。
+                No attempts yet. Pick a question from a book to get started.
               </p>
             )}
           </div>
         </section>
 
         <p className="mt-6 text-center text-[11px] text-ink-muted">
-          数据来源：
-          {source === "db" ? "本地 SQLite 数据库" : "只读种子数据（未配置数据库）"}
+          Data source:{" "}
+          {source === "db" ? "local SQLite database" : "read-only seed data (no database configured)"}
         </p>
       </main>
     </div>

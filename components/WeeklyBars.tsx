@@ -1,10 +1,11 @@
 import type { DailyActivity } from "@/lib/types";
 
 /**
- * 单序列的时间趋势 —— 单一色相柱状图。
- * 相邻柱之间留 2px 表面间隙；数据端 4px 圆角并锚在基线上；
- * 只给最高的那天加直接标签（不是每根柱都标数字）；基线用发丝线，克制。
- * 每根柱带 hover tooltip（纯 CSS，无需客户端组件）。
+ * Single-series trend over time — one hue, column chart.
+ * 2px surface gap between adjacent bars; 4px rounded data-ends anchored to the
+ * baseline; only the peak day is direct-labeled (not a number on every bar);
+ * hairline baseline, recessive. Each bar carries a CSS-only hover tooltip, so
+ * this stays a server component.
  */
 export function WeeklyBars({ data }: { data: DailyActivity[] }) {
   const max = Math.max(...data.map((d) => d.count), 1);
@@ -17,7 +18,7 @@ export function WeeklyBars({ data }: { data: DailyActivity[] }) {
         <span className="tnum text-[22px] font-semibold leading-none text-ink">
           {total}
         </span>
-        <span className="text-xs text-ink-muted">近 7 天累计答题</span>
+        <span className="text-xs text-ink-muted">answered in the last 7 days</span>
       </div>
 
       <div className="flex h-28 items-end gap-[2px]">
@@ -43,7 +44,7 @@ export function WeeklyBars({ data }: { data: DailyActivity[] }) {
               <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-hairline bg-surface px-2 py-1 text-[11px] text-ink shadow-sm group-hover:block">
                 <span className="tnum">{d.date}</span>
                 <span className="mx-1 text-ink-muted">·</span>
-                <span className="tnum font-medium">{d.count} 题</span>
+                <span className="tnum font-medium">{d.count}</span>
               </span>
 
               <span className="absolute inset-0 -top-2" aria-hidden="true" />

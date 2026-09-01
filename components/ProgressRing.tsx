@@ -1,6 +1,6 @@
 /**
- * 单一比值对上限 —— 用 meter 形式（同色系轨道 + 填充），不用饼图。
- * 数字本身是英雄数字，尺寸 >= 48px。
+ * A single ratio against a limit — rendered as a meter (same-ramp track plus
+ * fill), never a two-slice pie. The number itself is the hero figure at >=48px.
  */
 export function ProgressRing({
   finished,
@@ -23,7 +23,7 @@ export function ProgressRing({
         width={size}
         height={size}
         role="img"
-        aria-label={`今日已完成 ${finished} 题，目标 ${target} 题，完成度 ${pct}%`}
+        aria-label={`${finished} of ${target} questions answered today, ${pct}% complete`}
       >
         <circle
           cx={size / 2}
@@ -49,7 +49,7 @@ export function ProgressRing({
         <div className="tnum text-[44px] font-semibold leading-none text-ink">
           {finished}
         </div>
-        <div className="tnum mt-1 text-xs text-ink-muted">/ {target} 题</div>
+        <div className="tnum mt-1 text-xs text-ink-muted">/ {target}</div>
       </div>
     </div>
   );

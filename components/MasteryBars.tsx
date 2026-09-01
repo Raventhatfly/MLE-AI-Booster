@@ -1,9 +1,9 @@
 import type { CategoryMastery } from "@/lib/types";
 
 /**
- * 每个分类是「已掌握 / 总题数」这一个比值对上限 —— 用 meter（同色系轨道 + 填充），
- * 不用饼图、不用多色柱。所有分类量的是同一个指标，因此单一色相（顺序色），
- * 不使用分类色板。
+ * Each row is one ratio against a limit (mastered / total), so it is a meter:
+ * same-ramp track plus fill. Every row measures the SAME quantity, so this uses
+ * a single hue (sequential), never the categorical palette.
  */
 export function MasteryBars({ data }: { data: CategoryMastery[] }) {
   const sorted = [...data].sort(
@@ -29,7 +29,7 @@ export function MasteryBars({ data }: { data: CategoryMastery[] }) {
             <div
               className="relative mt-1.5 h-2 overflow-hidden rounded-full bg-track"
               role="img"
-              aria-label={`${row.category}：已掌握 ${row.mastered} 题，共 ${row.total} 题，${pct}%`}
+              aria-label={`${row.category}: ${row.mastered} of ${row.total} mastered, ${pct}%`}
             >
               <div
                 className="h-full rounded-full bg-mark-blue transition-[width]"

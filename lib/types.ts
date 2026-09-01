@@ -1,24 +1,25 @@
 /**
- * 领域类型。字段与 README 第 4 节的数据模型（Question / Attempt）对齐。
+ * Domain types, aligned with the Question / Attempt models in README section 4.
  *
- * 关于 category / difficulty / verdict：SQLite 不支持枚举，数据库里存的是
- * String。下面的联合类型是「写入侧」的约束（种子数据、AI 批改结果都应落在
- * 这些取值里），而「读取侧」的展示类型用 string —— 因为从数据库读出来的值
- * 无法在类型层面保证一定属于联合，强行断言只会把问题藏起来。
+ * On category / difficulty / verdict: SQLite has no enums, so these are stored
+ * as String. The union types below constrain the WRITE side (seed data and AI
+ * grading output must land on these values). The READ side uses plain string,
+ * because a value coming back from the database cannot be proven to belong to
+ * the union at the type level — asserting it would only hide the problem.
  */
 
 export const CATEGORIES = [
-  "ML 基础",
-  "深度学习",
-  "LLM / 生成式",
-  "ML 系统设计",
+  "ML Fundamentals",
+  "Deep Learning",
+  "LLM / GenAI",
+  "ML System Design",
   "Coding",
   "Behavioral",
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
 
-export const DIFFICULTIES = ["入门", "进阶", "困难"] as const;
+export const DIFFICULTIES = ["Easy", "Medium", "Hard"] as const;
 
 export type Difficulty = (typeof DIFFICULTIES)[number];
 

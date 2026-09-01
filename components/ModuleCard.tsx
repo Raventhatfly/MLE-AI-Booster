@@ -2,8 +2,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 /**
- * 主界面三大入口用的模块卡。参考百词斩「单词书 / 错词本 / 词场」的模块划分方式：
- * 每个模块一个大入口 + 一个当前状态数字，进去才是详细列表。
+ * Module card for the three primary dashboard entries. The module split follows
+ * the Baicizhan pattern (wordbook / mistake book / browse): one large entry per
+ * module showing a single status number, with the detailed list one level in.
  */
 export function ModuleCard({
   href,

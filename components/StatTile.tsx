@@ -1,4 +1,4 @@
-/** KPI 小卡：单个当前值。不要用只有一根柱子的柱状图代替。 */
+/** KPI tile: one current value. Never replace this with a one-bar bar chart. */
 export function StatTile({
   label,
   value,

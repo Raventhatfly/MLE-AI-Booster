@@ -1,22 +1,24 @@
 import type { Verdict } from "@/lib/types";
 
 /**
- * 状态色是固定的功能色，不跟品牌红蓝走；且始终「图标 + 文字」成对出现，
- * 不靠颜色单独表意（浅色表面上 warning 对比度低于 3:1，靠文字兜底）。
+ * Status colors are fixed functional colors and deliberately do NOT follow the
+ * red/blue brand palette. They always ship as icon + label so meaning is never
+ * carried by color alone (warning falls below 3:1 on the light surface, so the
+ * label is what makes it readable).
  */
 const MAP: Record<Verdict, { label: string; icon: string; className: string }> = {
   correct: {
-    label: "正确",
+    label: "Correct",
     icon: "✓",
     className: "text-good border-good/30 bg-good/10",
   },
   partial: {
-    label: "部分正确",
+    label: "Partial",
     icon: "!",
     className: "text-ink-2 border-warning/50 bg-warning/15",
   },
   wrong: {
-    label: "错误",
+    label: "Incorrect",
     icon: "✕",
     className: "text-critical border-critical/30 bg-critical/10",
   },

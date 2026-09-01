@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { BrandMark } from "@/components/BrandMark";
 
-/** 阶段 1 未完成的模块占位页，避免 dashboard 上的入口点进去 404。 */
+/** Placeholder for modules not yet built, so dashboard entries do not 404. */
 export function ComingSoon({
   title,
   description,
@@ -28,7 +28,7 @@ export function ComingSoon({
             href="/"
             className="rounded-md px-3 py-1.5 text-[13px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
           >
-            ← 回到总览
+            ← Back to overview
           </Link>
         </div>
       </header>
@@ -41,7 +41,7 @@ export function ComingSoon({
             {description}
           </p>
           <p className="mt-6 text-[12px] text-ink-muted">
-            本页在阶段 1 实现。当前只完成了主界面 dashboard。
+            Coming in the next milestone. The dashboard is the only page built so far.
           </p>
         </div>
       </main>
