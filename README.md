@@ -190,6 +190,42 @@ CI 现在会跑，但不会阻止把红的代码合进 `main`。GitHub → 仓�
 2. 勾 **Require status checks to pass**，把 `lint / typecheck / build` 和 `dependency audit` 加进去。
 3. 勾 **Require a pull request before merging**（个人项目可不勾，想直接 push main 就留空）。
 
+### 运行形态：本地带数据库，云端不带
+
+当前是自研自用阶段，刻意做成**两种形态共用一份代码**，云端不连任何数据库：
+
+| | 本地 `localhost` | 云端（Vercel） |
+|---|---|---|
+| 数据库 | SQLite 文件，完整读写 | **不连库** |
+| 题目来源 | 数据库（由种子数据导入） | 直接读打包进 bundle 的 `data/seed-questions.json` |
+| 作答记录 | 落库为 `Attempt`，可查历史 | 不落库，仅存浏览器 `localStorage`，刷新站点即失 |
+| 历史统计 / 薄弱知识点 | 有 | 无（依赖 `Attempt` 表） |
+| AI 批改 | 有 | 有（走 Claude API，与数据库无关） |
+| 成本 | $0 | $0 |
+
+切换开关就是 `DATABASE_URL` 这一个环境变量：**存在则走数据库，不存在则降级到只读种子数据 + localStorage。** 云端不配这个变量即可。
+
+这么做的好处：云端始终有一个能点开演示的地址，但零数据库成本、零数据合规负担（不存任何他人数据）；等真要给别人用、需要历史记录了，只要在 Vercel 加上 `DATABASE_URL`（比如 Neon 免费版）就自动升级为完整形态，代码不用改。
+
+**由此产生三条硬约束，写代码时必须守住（否则 CI 或 Vercel 构建会红）：**
+
+1. **构建期绝不能连数据库。** 需要数据库的页面必须标 `export const dynamic = 'force-dynamic'`，不要让它进静态预渲染。
+2. **`prisma generate` 可以放进构建（它不连库）；`prisma migrate deploy` 绝不能放进 Vercel 构建。** migration 只在本地对本地库执行。
+3. **Prisma client 必须懒加载**（用到时才 `new PrismaClient()`），不能在模块顶层就建连接 —— 否则云端一 import 就炸。
+
+> CI 天然就是这条架构的守卫：CI 里**没有** `DATABASE_URL`，却要跑 `npm run build`。哪天有人不小心写了构建期的数据库访问，CI 立刻变红，不用等部署到 Vercel 才发现。这个保护是免费的，不需要额外配置。
+
+### 成本：当前全链路 $0（均已核实）
+
+| 项 | 免费额度 | 说明 |
+|---|---|---|
+| GitHub Actions | **public 仓库无限分钟**；private 为 2000 分钟/月 | 单次 CI 约 2 分钟，即便转 private 也远用不完 |
+| Vercel Hobby | 免费，无需信用卡；100 次部署/天 | **限非商业、个人用途**（fair use）。将来要商业化需升 Pro（$20/月/席） |
+| 数据库 | **$0，因为云端不连库** | 需要时再接 Neon 免费版：永久免费、不要信用卡、0.5 GB/项目、100 CU-hours/月、闲置自动 scale-to-zero |
+| Claude API | 无免费额度 | 唯一真实支出，按 token 计费，与部署方案无关 |
+
+注意：`ANTHROPIC_API_KEY` 一旦配到公开可访问的云端部署上，任何人都能通过页面消耗你的 API 额度。自用阶段建议在 Vercel 打开 **Settings → Deployment Protection → Vercel Authentication**（Hobby 计划可用），这样只有登录你 Vercel 账号的人能访问该部署。
+
 ### CD：部署到 Vercel（走官方 Git 集成，仓库内无需配置）
 
 不需要额外写 GitHub Actions —— Vercel 的 Git 集成本身就是 CD：
@@ -197,9 +233,10 @@ CI 现在会跑，但不会阻止把红的代码合进 `main`。GitHub → 仓�
 1. 在 [vercel.com](https://vercel.com) 用 GitHub 账号登录，**Add New Project**，选择 `Raventhatfly/MLE-AI-Booster`。
 2. Framework Preset 会自动识别为 Next.js，默认配置直接可用；Node.js Version 会被 `engines.node`（`24.x`）覆盖，无需手动改。
 3. 连接后自动生效：push 到 `main` → 生产部署；其他分支 / PR → 独立的 Preview 部署链接。
-4. 环境变量在 **Settings → Environment Variables** 配，**不要提交到仓库**（`.gitignore` 已排除 `.env*`）。阶段 1 会用到：
-   - `ANTHROPIC_API_KEY` —— Claude API 密钥
-   - `DATABASE_URL` —— 部署环境的 Postgres 连接串（本地是 SQLite 文件）
-5. 这一步需要你自己的 Vercel 账号授权，无法代为完成。
+4. 环境变量在 **Settings → Environment Variables** 配，**不要提交到仓库**（`.gitignore` 已排除 `.env*`）：
+   - `ANTHROPIC_API_KEY` —— Claude API 密钥（阶段 1 需要）
+   - `DATABASE_URL` —— **云端刻意留空**，见上方「运行形态」。将来要完整形态时才填
+5. 建议同时打开 **Deployment Protection → Vercel Authentication**，见上方成本一节的说明。
+6. 这一步需要你自己的 Vercel 账号授权，无法代为完成。
 
 > Vercel 的构建独立于 GitHub Actions：CI 红了 Vercel 照样会部署。如果要「CI 通过才允许部署」，得配上面的分支保护 + 只从 PR 合并到 `main`。
