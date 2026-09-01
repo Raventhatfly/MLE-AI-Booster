@@ -144,19 +144,62 @@ mle-ai-booster/
 
 ## 9. 本地开发
 
+Node 版本要求 **24.x**（见 `.nvmrc` 与 `package.json` 的 `engines.node`）。用 nvm 的话：
+
 ```bash
+nvm use          # 读取 .nvmrc
 npm install
 npm run dev
+```
+
+三个校验命令和 CI 里跑的完全一致，提交前本地先过一遍：
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
 ```
 
 Prisma / 数据库相关命令会在阶段 1 接入 Prisma 后补充；具体的环境变量（如 `ANTHROPIC_API_KEY`）也会在那时补充到本文档。
 
 ## 10. CI/CD
 
-- **CI**（已配置）：`.github/workflows/ci.yml`，在 push / PR 到 `main` 时运行 `npm ci` → `lint` → `typecheck` → `build`，保证主分支始终可构建。
-- **CD（部署到 Vercel）**：未在仓库内配置，走 Vercel 官方的 Git 集成即可，不需要额外的 GitHub Actions：
-  1. 在 [vercel.com](https://vercel.com) 用 GitHub 账号登录，点 "Add New Project"，选择这个仓库（`Raventhatfly/MLE-AI-Booster`）。
-  2. Framework Preset 会自动识别为 Next.js，默认配置直接可用。
-  3. 连接后，Vercel 会自动：push 到 `main` → 生产环境部署；其他分支 / PR → 生成独立的 Preview 部署链接。
-  4. 后续如果加了环境变量（如 `ANTHROPIC_API_KEY`、数据库连接串），在 Vercel 项目的 Settings → Environment Variables 里配置，不要提交到仓库。
-  - 这一步需要你自己的 Vercel 账号授权，无法代为完成，按上面步骤操作即可。
+### CI（已配置并跑通）
+
+`.github/workflows/ci.yml`，在 push / PR 到 `main` 时触发，两个并行 job：
+
+| Job | 内容 | 作用 |
+|---|---|---|
+| `lint / typecheck / build` | `npm ci` → `npm run lint` → `npm run typecheck` → `npm run build` | 保证 `main` 始终可构建 |
+| `dependency audit` | `npm audit --audit-level=high` | high 及以上漏洞直接红 |
+
+几个刻意的设计：
+
+- **Node 版本单一来源**：CI 用 `node-version-file: .nvmrc`，本地 `nvm use` 读同一个文件，Vercel 侧读 `package.json` 的 `engines.node`（Vercel 不读 `.nvmrc`）。三处都是 **24.x**。
+  - 注意：Vercel 将于 **2026-10-01 弃用 Node 20**，上游 Node 20 已在 2026-04 EOL，所以这里不用 20。
+- **`concurrency` + `cancel-in-progress`**：同一分支连续 push 时取消旧 run，省 Actions 额度。
+- **`permissions: contents: read`**：最小权限，CI 只需要读代码。
+- **缓存两层**：`setup-node` 的 npm 缓存 + `.next/cache`（Next.js 增量构建缓存）。
+- **audit 单独成 job**：红的时候一眼能区分「代码问题」还是「依赖漏洞」。如果某个传递依赖长期没有修复版导致噪音，在该 step 上加 `continue-on-error: true`，不要放宽 `--audit-level`。
+
+### 建议开启分支保护（需要你在网页上操作）
+
+CI 现在会跑，但不会阻止把红的代码合进 `main`。GitHub → 仓库 **Settings → Rules → Rulesets → New branch ruleset**（或旧版 Settings → Branches）：
+
+1. Target branches 选 `main`。
+2. 勾 **Require status checks to pass**，把 `lint / typecheck / build` 和 `dependency audit` 加进去。
+3. 勾 **Require a pull request before merging**（个人项目可不勾，想直接 push main 就留空）。
+
+### CD：部署到 Vercel（走官方 Git 集成，仓库内无需配置）
+
+不需要额外写 GitHub Actions —— Vercel 的 Git 集成本身就是 CD：
+
+1. 在 [vercel.com](https://vercel.com) 用 GitHub 账号登录，**Add New Project**，选择 `Raventhatfly/MLE-AI-Booster`。
+2. Framework Preset 会自动识别为 Next.js，默认配置直接可用；Node.js Version 会被 `engines.node`（`24.x`）覆盖，无需手动改。
+3. 连接后自动生效：push 到 `main` → 生产部署；其他分支 / PR → 独立的 Preview 部署链接。
+4. 环境变量在 **Settings → Environment Variables** 配，**不要提交到仓库**（`.gitignore` 已排除 `.env*`）。阶段 1 会用到：
+   - `ANTHROPIC_API_KEY` —— Claude API 密钥
+   - `DATABASE_URL` —— 部署环境的 Postgres 连接串（本地是 SQLite 文件）
+5. 这一步需要你自己的 Vercel 账号授权，无法代为完成。
+
+> Vercel 的构建独立于 GitHub Actions：CI 红了 Vercel 照样会部署。如果要「CI 通过才允许部署」，得配上面的分支保护 + 只从 PR 合并到 `main`。
