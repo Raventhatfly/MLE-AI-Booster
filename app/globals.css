@@ -1,26 +1,93 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ---------------------------------------------------------------------------
+   设计令牌
+   品牌红蓝：巴萨 blaugrana (#004D98 / #A50044) × 哈佛 crimson (#A51C30)
+            × 浙大求是蓝 (#003F88)
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+   注意区分两组颜色，不要混用：
+   - brand-*  : UI chrome（导航、按钮、标题装饰）。不受图表亮度带约束。
+   - mark-*   : 图表标记（进度条、柱子）。已通过 CVD / 亮度带 / 对比度校验，
+                light 蓝 #2f7fd6 与红 #A50044 的 CVD ΔE 22.3；
+                dark 蓝 #4a94e8 与红 #e0578f 的 CVD ΔE 14.7。改动前请重跑校验。
+--------------------------------------------------------------------------- */
+:root {
+  --plane: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #f0f4f9;
+  --ink: #0b1220;
+  --ink-2: #4a5568;
+  --ink-muted: #7d8899;
+  --hairline: #e3e8f0;
+
+  --brand-blue: #004d98;
+  --brand-blue-deep: #003f88;
+  --brand-garnet: #a50044;
+  --brand-crimson: #a51c30;
+
+  --mark-blue: #2f7fd6;
+  --mark-garnet: #a50044;
+  --track: #e8edf5;
+
+  /* 状态色固定，不随品牌主题走；始终配图标 + 文字，不靠颜色单独表意 */
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --plane: #0a0e17;
+    --surface: #131a26;
+    --surface-2: #1a2332;
+    --ink: #ffffff;
+    --ink-2: #b8c2d4;
+    --ink-muted: #7b8699;
+    --hairline: #253040;
+
+    --brand-blue: #4a90e2;
+    --brand-blue-deep: #2f7fd6;
+    --brand-garnet: #e0578f;
+    --brand-crimson: #e06a7a;
+
+    --mark-blue: #4a94e8;
+    --mark-garnet: #e0578f;
+    --track: #202b3b;
   }
 }
 
+@theme inline {
+  --color-plane: var(--plane);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-muted: var(--ink-muted);
+  --color-hairline: var(--hairline);
+
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-blue-deep: var(--brand-blue-deep);
+  --color-brand-garnet: var(--brand-garnet);
+  --color-brand-crimson: var(--brand-crimson);
+
+  --color-mark-blue: var(--mark-blue);
+  --color-mark-garnet: var(--mark-garnet);
+  --color-track: var(--track);
+
+  --color-good: var(--good);
+  --color-warning: var(--warning);
+  --color-critical: var(--critical);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--plane);
+  color: var(--ink);
+}
+
+/* 大号独立数字用等宽数位，避免进度变化时宽度抖动 */
+.tnum {
+  font-variant-numeric: tabular-nums;
 }

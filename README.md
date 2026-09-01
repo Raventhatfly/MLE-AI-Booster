@@ -2,7 +2,7 @@
 
 一个面向 AI/ML 工程师（MLE）岗位面试的刷题与 AI 陪练工具：题库来自网络爬取/整理，学习者作答后由 AI 给出批改、纠错和追问，帮助巩固面试知识点。
 
-> 当前阶段：架构设计与规划。尚未开始编码，本 README 记录整体设计思路，作为后续开发的依据。设计会随实际开发迭代更新。
+> 当前阶段：主界面 dashboard 已完成（本地假数据，未接数据库与 AI）。下一步是阶段 1 的三个模块页与 AI 批改闭环。设计会随实际开发迭代更新。
 
 ## 1. 产品定位与 MVP 范围
 
@@ -95,28 +95,49 @@ erDiagram
 - `Attempt`：每一次作答记录，包含 AI 的判定（`aiVerdict`：正确/部分正确/错误）、详细反馈文本、以及可能的追问列表，用于后续做"薄弱知识点"统计。
 - 当前不设计 `User` 表；如果后续要支持多用户，只需新增 `User` 并给 `Attempt` 加 `userId` 外键，不影响现有结构。
 
-## 5. 目录结构（规划）
+## 5. 目录结构
+
+脚手架用的是 `--no-src-dir`，代码直接放在仓库根目录，不套 `src/`（Next.js 官方模板默认如此，没必要多一层）。
 
 ```
 mle-ai-booster/
-├── prisma/
+├── app/
+│   ├── layout.tsx             # 根布局：字体、metadata
+│   ├── globals.css            # 设计令牌（品牌红蓝 / 图表标记色 / 状态色）+ Tailwind
+│   ├── page.tsx               # 主界面 dashboard
+│   ├── books/                 # MLE 题本（阶段 1）
+│   ├── wrong-answers/         # 错题库（阶段 1）
+│   ├── classifier/            # MLE 题库分类器（阶段 1）
+│   └── api/                   # 阶段 1 新增：questions / answers / grade
+├── components/                # 展示组件，全部为 server component
+│   ├── BrandMark.tsx          # blaugrana 竖条纹品牌标记
+│   ├── ProgressRing.tsx       # 今日计划进度环（meter）
+│   ├── StatTile.tsx           # KPI 小卡
+│   ├── ModuleCard.tsx         # 三大入口模块卡
+│   ├── MasteryBars.tsx        # 分类掌握度（单色相 meter）
+│   ├── WeeklyBars.tsx         # 近 7 天刷题量（单序列柱状图）
+│   ├── VerdictPill.tsx        # AI 判定状态标签
+│   └── ComingSoon.tsx         # 未完成模块的占位页
+├── lib/
+│   ├── types.ts               # 领域类型，字段与第 4 节数据模型对齐
+│   ├── mock-data.ts           # 本地假数据，阶段 1 换成 Prisma 查询
+│   ├── db.ts                  # 阶段 1 新增：Prisma client（懒加载）
+│   └── llm.ts                 # 阶段 1 新增：Claude API 封装
+├── prisma/                    # 阶段 1 新增
 │   └── schema.prisma
-├── src/
-│   ├── app/
-│   │   ├── (site)/            # 页面：题目列表、答题页、历史记录
-│   │   └── api/
-│   │       ├── questions/
-│   │       ├── answers/
-│   │       └── grade/
-│   ├── lib/
-│   │   ├── db.ts              # Prisma client 单例
-│   │   ├── llm.ts             # Claude API 封装
-│   │   └── ingest/            # 题库导入：预留目录，先放手动导入脚本
-│   └── components/
-├── data/
-│   └── seed-questions.json    # 初始种子题库
-└── README.md
+└── data/                      # 阶段 1 新增
+    └── seed-questions.json
 ```
+
+### 界面设计约定
+
+- **品牌配色红蓝**：巴萨 blaugrana（`#004D98` / `#A50044`）× 哈佛 crimson（`#A51C30`）× 浙大求是蓝（`#003F88`）。
+- **模块划分参考百词斩**（题本≈单词书、错题库≈错词本、分类器≈分类浏览、今日计划≈打卡），但视觉设计不模仿。
+- **两组颜色不要混用**，见 `globals.css` 顶部注释：
+  - `--brand-*` 用于 UI chrome（导航、按钮、装饰条），不受图表亮度带约束；
+  - `--mark-*` 用于图表标记，已通过 CVD / 亮度带 / 对比度校验（light 蓝 `#2f7fd6` vs 红 `#A50044` 的 CVD ΔE 22.3；dark 蓝 `#4a94e8` vs 红 `#e0578f` 的 ΔE 14.7）。**改动标记色前必须重跑校验**，不要凭肉眼判断。
+- **状态色固定不随品牌走**（good/warning/critical），且始终「图标 + 文字」成对出现，不靠颜色单独表意。
+- 图表形式按数据职责选：单个当前值用 KPI 小卡而非单柱图；比值对上限用 meter（同色系轨道 + 填充）而非饼图；同一指标跨分类比较用单一色相，不用分类色板。
 
 ## 6. 核心流程：作答 → AI 批改
 
@@ -136,8 +157,8 @@ mle-ai-booster/
 
 ## 8. 路线图
 
-- **阶段 0（当前）**：架构设计、README、技术选型确认。
-- **阶段 1**：跑通最小闭环 —— 种子题库 + 答题页 + AI 批改，单用户、本地运行。
+- **阶段 0（已完成）**：架构设计、README、技术选型确认、CI/CD、主界面 dashboard（假数据）。
+- **阶段 1（当前）**：跑通最小闭环 —— 种子题库 + 题本/错题库/分类器三个页面 + 答题页 + AI 批改，单用户、本地运行。
 - **阶段 2**：历史记录 / 薄弱知识点统计、更好的 prompt 设计、追问式多轮对话。
 - **阶段 3（按需）**：题库自动化更新（爬虫/定时任务）、部署上线。
 - **阶段 4（按需，视是否要面向他人开放）**：用户账号体系、多用户数据隔离。
