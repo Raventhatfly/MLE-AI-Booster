@@ -2,7 +2,7 @@
 
 一个面向 AI/ML 工程师（MLE）岗位面试的刷题与 AI 陪练工具：题库来自网络爬取/整理，学习者作答后由 AI 给出批改、纠错和追问，帮助巩固面试知识点。
 
-> 当前阶段：主界面 dashboard 已完成（本地假数据，未接数据库与 AI）。下一步是阶段 1 的三个模块页与 AI 批改闭环。设计会随实际开发迭代更新。
+> 当前阶段：主界面 dashboard 已接本地 SQLite 真实数据；云端形态不连库、自动降级为只读演示。下一步是三个模块页与 AI 批改闭环。设计会随实际开发迭代更新。
 
 ## 1. 产品定位与 MVP 范围
 
@@ -65,11 +65,21 @@ flowchart TB
 - 题库导入模块（`Ingest`）只定义数据契约（见下方数据模型），具体是"手动整理 JSON 导入"还是"写爬虫脚本"是后续可替换的实现细节。
 - AI 批改被抽成独立的 API 层（`/api/grade`），方便以后替换/对比不同模型，或加缓存、限流。
 
-## 4. 数据模型（初版）
+## 4. 数据模型
+
+已落到 `prisma/schema.prisma`，本地 SQLite。
 
 ```mermaid
 erDiagram
+    QuestionBook ||--o{ Question : "收录"
     Question ||--o{ Attempt : "被作答"
+    QuestionBook {
+        string id PK
+        string name
+        string description
+        int sortOrder
+        datetime createdAt
+    }
     Question {
         string id PK
         string title
@@ -78,6 +88,7 @@ erDiagram
         string difficulty
         string referenceAnswer
         string source
+        string bookId FK
         datetime createdAt
     }
     Attempt {
@@ -86,14 +97,33 @@ erDiagram
         string userAnswer
         string aiVerdict
         string aiFeedback
-        string[] followUps
+        string followUps
+        int durationSec
         datetime createdAt
     }
 ```
 
-- `Question`：题目本体，`category`（如 ML 基础 / 系统设计 / coding / behavioral）、`difficulty`、`referenceAnswer`（用于给 AI 做批改参照）、`source`（题目来源，便于以后追溯是哪次导入/哪个渠道）。
-- `Attempt`：每一次作答记录，包含 AI 的判定（`aiVerdict`：正确/部分正确/错误）、详细反馈文本、以及可能的追问列表，用于后续做"薄弱知识点"统计。
-- 当前不设计 `User` 表；如果后续要支持多用户，只需新增 `User` 并给 `Attempt` 加 `userId` 外键，不影响现有结构。
+- `QuestionBook`：题本，对应百词斩「单词书」的概念，一个题本收录多道题。
+- `Question`：题目本体。`category`（ML 基础 / 深度学习 / LLM / 生成式 / ML 系统设计 / Coding / Behavioral）、`difficulty`（入门 / 进阶 / 困难）、`referenceAnswer`（供 AI 批改参照）、`source`（来源，便于追溯导入批次）。
+- `Attempt`：每一次作答记录。`aiVerdict` 取 `correct` / `partial` / `wrong`，为空表示还没批改；`durationSec` 是本次作答耗时，用于「今日用时」统计。
+- 当前不设计 `User` 表；后续要支持多用户，只需新增 `User` 并给 `Attempt` 加 `userId`。
+
+### 两处 SQLite 限制导致的设计妥协
+
+1. **不支持枚举** —— `category` / `difficulty` / `aiVerdict` 在库里都是 `String`。写入侧由 `lib/types.ts` 的联合类型约束；读取侧展示类型用 `string`，因为从库里读出来的值无法在类型层面保证属于联合，强行断言只会把问题藏起来。
+2. **不支持标量数组** —— 原设计的 `followUps String[]` 改为存 JSON 字符串，读写统一走 `lib/db.ts` 的 `serializeFollowUps` / `parseFollowUps`。
+
+### 统计口径
+
+页面上的数字含义由这些定义决定，实现在 `lib/data.ts`，改动请同步改这里：
+
+| 指标 | 口径 |
+|---|---|
+| 已掌握 | 该题**最近一次**作答判定为 `correct` |
+| 待复习错题 | 该题**最近一次**作答判定为 `wrong` 或 `partial` |
+| 连续打卡 | 从今天往前，连续每天都有作答记录的天数（今天还没答不算断签） |
+| 近 30 天正确率 | 近 30 天全部作答中 `correct` 的占比；无记录时显示 `—` 而不是 0% |
+| 题本进度 | 该题本中至少作答过一次的题目数 |
 
 ## 5. 目录结构
 
@@ -108,7 +138,7 @@ mle-ai-booster/
 │   ├── books/                 # MLE 题本（阶段 1）
 │   ├── wrong-answers/         # 错题库（阶段 1）
 │   ├── classifier/            # MLE 题库分类器（阶段 1）
-│   └── api/                   # 阶段 1 新增：questions / answers / grade
+│   └── api/                   # 待做：questions / answers / grade
 ├── components/                # 展示组件，全部为 server component
 │   ├── BrandMark.tsx          # blaugrana 竖条纹品牌标记
 │   ├── ProgressRing.tsx       # 今日计划进度环（meter）
@@ -119,14 +149,18 @@ mle-ai-booster/
 │   ├── VerdictPill.tsx        # AI 判定状态标签
 │   └── ComingSoon.tsx         # 未完成模块的占位页
 ├── lib/
-│   ├── types.ts               # 领域类型，字段与第 4 节数据模型对齐
-│   ├── mock-data.ts           # 本地假数据，阶段 1 换成 Prisma 查询
-│   ├── db.ts                  # 阶段 1 新增：Prisma client（懒加载）
-│   └── llm.ts                 # 阶段 1 新增：Claude API 封装
-├── prisma/                    # 阶段 1 新增
-│   └── schema.prisma
-└── data/                      # 阶段 1 新增
-    └── seed-questions.json
+│   ├── types.ts               # 领域类型 + 统计口径相关的展示类型
+│   ├── db.ts                  # Prisma client（懒加载）+ followUps 序列化
+│   ├── data.ts                # 「有库走库 / 无库降级」的唯一分叉点
+│   ├── generated/prisma/      # prisma generate 产物，已 gitignore
+│   └── llm.ts                 # 待做：Claude API 封装
+├── prisma/
+│   ├── schema.prisma
+│   ├── migrations/
+│   └── seed.ts                # 种子脚本，幂等
+├── prisma7.config.ts          # Prisma 7 配置：schema 路径 / datasource / seed 命令
+└── data/
+    └── seed-questions.json    # 4 个题本 + 22 道种子题
 ```
 
 ### 界面设计约定
@@ -158,7 +192,11 @@ mle-ai-booster/
 ## 8. 路线图
 
 - **阶段 0（已完成）**：架构设计、README、技术选型确认、CI/CD、主界面 dashboard（假数据）。
-- **阶段 1（当前）**：跑通最小闭环 —— 种子题库 + 题本/错题库/分类器三个页面 + 答题页 + AI 批改，单用户、本地运行。
+- **阶段 1（进行中）**：跑通最小闭环。
+  - [x] 本地 SQLite + Prisma + 种子题库（4 题本 / 22 题）
+  - [x] 主界面 dashboard 接真实数据，云端降级为只读
+  - [ ] 题本 / 错题库 / 分类器三个模块页
+  - [ ] 答题页 + `/api/grade` AI 批改
 - **阶段 2**：历史记录 / 薄弱知识点统计、更好的 prompt 设计、追问式多轮对话。
 - **阶段 3（按需）**：题库自动化更新（爬虫/定时任务）、部署上线。
 - **阶段 4（按需，视是否要面向他人开放）**：用户账号体系、多用户数据隔离。
@@ -181,7 +219,40 @@ npm run typecheck
 npm run build
 ```
 
-Prisma / 数据库相关命令会在阶段 1 接入 Prisma 后补充；具体的环境变量（如 `ANTHROPIC_API_KEY`）也会在那时补充到本文档。
+### 数据库（本地）
+
+首次拉下仓库后需要建库并导入种子数据：
+
+```bash
+cp .env.example .env      # 或手动创建，内容见下
+npm run db:migrate        # 建库 + 应用 migration
+npm run db:seed           # 导入 4 个题本 + 22 道题 + 一批作答记录
+```
+
+`.env` 只需要一行（这个文件不入库）：
+
+```env
+DATABASE_URL="file:./dev.db"
+```
+
+其他命令：
+
+| 命令 | 作用 |
+|---|---|
+| `npm run db:studio` | 打开 Prisma Studio 可视化查看/编辑数据 |
+| `npm run db:reset` | 删库重建并重跑 seed（数据会全部丢失） |
+| `npx prisma generate` | 手动重新生成 client（改完 schema 后必须跑，见下） |
+
+### Prisma 7 的几个坑（与 Prisma 6 不同，踩过了记下来）
+
+1. **npm 的 `latest` 标签指向 `8.0.0-rc.12`（一个 RC）**，稳定版在 `prev` 标签上。所以 `package.json` 里 `prisma` 和 `@prisma/client` 都用 `-E` 精确钉在 `7.10.0`，不要用 `^`，也不要跟着 CLI 的升级提示走。
+2. **必须用 driver adapter** —— SQLite 走 `@prisma/adapter-better-sqlite3` + `better-sqlite3`，`new PrismaClient({ adapter })`，不再是内置引擎自己连。
+3. **`prisma migrate dev` 不再自动重新生成 client** —— 改完 schema 跑完 migrate 之后，必须手动 `npx prisma generate`，否则新字段会报 `Unknown argument`。
+4. **datasource 的 url 不写在 schema 里**，移到了 `prisma7.config.ts`。
+5. **`tsx` 不自动加载 `.env`** —— `prisma/seed.ts` 顶部显式 `import "dotenv/config"`，这样直接 `npx tsx prisma/seed.ts` 也能跑。
+6. `prisma init` 会往仓库里塞 `.agents/` `.windsurf/` `.claude/skills/` 和 `skills-lock.json`（约 445 KB 的 vendor agent 文档）。这些是工具本地产物，已加进 `.gitignore` 不入库；本地留着有用（Prisma 7 的权威用法就在里面）。
+
+具体的环境变量（如 `ANTHROPIC_API_KEY`）会在接入 AI 批改时补充到本文档。
 
 ## 10. CI/CD
 
@@ -224,7 +295,9 @@ CI 现在会跑，但不会阻止把红的代码合进 `main`。GitHub → 仓�
 | AI 批改 | 有 | 有（走 Claude API，与数据库无关） |
 | 成本 | $0 | $0 |
 
-切换开关就是 `DATABASE_URL` 这一个环境变量：**存在则走数据库，不存在则降级到只读种子数据 + localStorage。** 云端不配这个变量即可。
+切换开关就是 `DATABASE_URL` 这一个环境变量：**存在则走数据库，不存在则降级到只读种子数据。** 云端不配这个变量即可。分叉点只有一处 —— `lib/data.ts` 的 `getDashboardData()`。
+
+降级模式下页面会顶一条「只读演示模式」提示，并且**所有个人进度显示为 0、正确率显示 `—`**，不拿假数字充场面。
 
 这么做的好处：云端始终有一个能点开演示的地址，但零数据库成本、零数据合规负担（不存任何他人数据）；等真要给别人用、需要历史记录了，只要在 Vercel 加上 `DATABASE_URL`（比如 Neon 免费版）就自动升级为完整形态，代码不用改。
 
@@ -234,7 +307,19 @@ CI 现在会跑，但不会阻止把红的代码合进 `main`。GitHub → 仓�
 2. **`prisma generate` 可以放进构建（它不连库）；`prisma migrate deploy` 绝不能放进 Vercel 构建。** migration 只在本地对本地库执行。
 3. **Prisma client 必须懒加载**（用到时才 `new PrismaClient()`），不能在模块顶层就建连接 —— 否则云端一 import 就炸。
 
+还有两条工程约束：
+
+4. **`prisma generate` 必须进构建** —— `package.json` 的 `postinstall` 脚本负责。已实测：**没有 `DATABASE_URL` 时 `prisma generate` 正常成功（退出码 0）**，所以云端构建不会因此失败。生成产物 `lib/generated/prisma/` 已 gitignore。
+5. **`better-sqlite3` 是原生模块，不能进云端依赖图** —— `lib/data.ts` 用**动态 import** 加载 `lib/db.ts`，只有确实要查库时才加载；云端走不到那条分支，原生模块不会被打包。
+
 > CI 天然就是这条架构的守卫：CI 里**没有** `DATABASE_URL`，却要跑 `npm run build`。哪天有人不小心写了构建期的数据库访问，CI 立刻变红，不用等部署到 Vercel 才发现。这个保护是免费的，不需要额外配置。
+
+**双形态已实测通过**：
+
+| | 构建 | 运行时 |
+|---|---|---|
+| 有 `DATABASE_URL` | ✓ `/` 为 `ƒ (Dynamic)`，不预渲染 | ✓ 显示真实数据（连续 7 天、今日 8/12、各分类掌握度） |
+| 无 `DATABASE_URL`（模拟 Vercel） | ✓ 退出码 0 | ✓ 只读横幅出现、进度全 0、打卡徽章隐藏、空态文案正确 |
 
 ### 成本：当前全链路 $0（均已核实）
 

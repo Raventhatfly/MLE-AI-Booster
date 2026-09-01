@@ -7,16 +7,14 @@ import { ProgressRing } from "@/components/ProgressRing";
 import { StatTile } from "@/components/StatTile";
 import { VerdictPill } from "@/components/VerdictPill";
 import { WeeklyBars } from "@/components/WeeklyBars";
-import {
-  categoryMastery,
-  difficultyBreakdown,
-  overview,
-  questionBooks,
-  recentAttempts,
-  todayPlan,
-  weeklyActivity,
-  wrongAnswerBank,
-} from "@/lib/mock-data";
+import { getDashboardData } from "@/lib/data";
+
+/**
+ * 本页读数据库，因此必须禁用静态预渲染 —— 否则构建期就会去连库，
+ * 违反「构建期绝不连数据库」的约束，云端和 CI 都会构建失败。
+ * 见 README「运行形态：本地带数据库，云端不带」。
+ */
+export const dynamic = "force-dynamic";
 
 const IconBook = (
   <svg
@@ -78,16 +76,31 @@ const NAV = [
   { href: "/classifier", label: "分类器", active: false },
 ];
 
-export default function Home() {
-  const activeBook = questionBooks.find((b) => b.active) ?? questionBooks[0];
-  const totalBookQuestions = questionBooks.reduce((s, b) => s + b.total, 0);
-  const totalBookFinished = questionBooks.reduce((s, b) => s + b.finished, 0);
+export default async function Home() {
+  const data = await getDashboardData();
+  const {
+    source,
+    todayPlan,
+    overview,
+    books,
+    wrongAnswers,
+    categoryMastery,
+    difficultyBreakdown,
+    weeklyActivity,
+    recentAttempts,
+  } = data;
+
+  const activeBook =
+    books.find((b) => b.finished > 0 && b.finished < b.total) ?? books[0];
+  const totalBookQuestions = books.reduce((s, b) => s + b.total, 0);
+  const totalBookFinished = books.reduce((s, b) => s + b.finished, 0);
   const difficultyHint = difficultyBreakdown
     .map((d) => d.difficulty + " " + d.count)
     .join(" · ");
-  const masteredPct = Math.round(
-    (overview.masteredQuestions / overview.totalQuestions) * 100,
-  );
+  const masteredPct =
+    overview.totalQuestions > 0
+      ? Math.round((overview.masteredQuestions / overview.totalQuestions) * 100)
+      : 0;
 
   return (
     <div className="flex min-h-full flex-col bg-plane">
@@ -114,10 +127,12 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-1.5 rounded-full border border-brand-garnet/30 bg-brand-garnet/10 px-2.5 py-1 text-[11px] font-medium text-brand-garnet sm:inline-flex">
-              <span aria-hidden="true">🔥</span>
-              <span className="tnum">连续 {overview.streakDays} 天</span>
-            </span>
+            {overview.streakDays > 0 ? (
+              <span className="hidden items-center gap-1.5 rounded-full border border-brand-garnet/30 bg-brand-garnet/10 px-2.5 py-1 text-[11px] font-medium text-brand-garnet sm:inline-flex">
+                <span aria-hidden="true">🔥</span>
+                <span className="tnum">连续 {overview.streakDays} 天</span>
+              </span>
+            ) : null}
             <Link
               href="/books"
               className="rounded-md bg-brand-blue px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-brand-blue-deep"
@@ -129,6 +144,16 @@ export default function Home() {
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-6">
+        {/* 云端形态：没有数据库，不谎报个人进度 */}
+        {source === "seed" ? (
+          <div className="mb-5 rounded-lg border border-brand-blue/25 bg-brand-blue/5 px-4 py-3 text-[12px] leading-relaxed text-ink-2">
+            <span className="font-medium text-brand-blue">只读演示模式</span>
+            ：当前环境未配置数据库，仅展示题库内容，
+            所有个人学习进度显示为 0。完整功能请在本地运行（
+            <code className="font-mono">npm run dev</code>）。
+          </div>
+        ) : null}
+
         {/* ---------- 今日计划 + KPI ---------- */}
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <div className="relative overflow-hidden rounded-xl border border-hairline bg-surface p-5">
@@ -141,8 +166,9 @@ export default function Home() {
               <div className="min-w-[180px] flex-1">
                 <h1 className="text-[17px] font-semibold text-ink">今日计划</h1>
                 <p className="mt-1 text-xs text-ink-2">
-                  还差 {Math.max(todayPlan.target - todayPlan.finished, 0)}{" "}
-                  题完成今日目标
+                  {todayPlan.finished >= todayPlan.target
+                    ? "今日目标已完成，可以继续加练"
+                    : `还差 ${todayPlan.target - todayPlan.finished} 题完成今日目标`}
                 </p>
 
                 <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
@@ -165,7 +191,7 @@ export default function Home() {
                     href="/books"
                     className="rounded-md bg-brand-blue px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-brand-blue-deep"
                   >
-                    继续《{activeBook.name}》
+                    {activeBook ? `继续《${activeBook.name}》` : "选择题本"}
                   </Link>
                   <Link
                     href="/classifier"
@@ -190,20 +216,32 @@ export default function Home() {
               label="已掌握"
               value={String(overview.masteredQuestions)}
               unit="题"
-              hint={"占题库 " + masteredPct + "%"}
+              hint={"最近一次判定为正确 · 占 " + masteredPct + "%"}
               accent="blue"
             />
             <StatTile
               label="近 30 天正确率"
-              value={Math.round(overview.accuracy30d * 100) + "%"}
-              hint="AI 批改判定为「正确」的比例"
+              value={
+                overview.accuracy30d === null
+                  ? "—"
+                  : Math.round(overview.accuracy30d * 100) + "%"
+              }
+              hint={
+                overview.accuracy30d === null
+                  ? "暂无作答记录"
+                  : "AI 批改判定为「正确」的比例"
+              }
               accent="garnet"
             />
             <StatTile
               label="待复习错题"
-              value={String(wrongAnswerBank.dueToday)}
+              value={String(wrongAnswers.total)}
               unit="题"
-              hint={"错题库共 " + wrongAnswerBank.total + " 题"}
+              hint={
+                wrongAnswers.total === 0
+                  ? "暂无错题"
+                  : `错误 ${wrongAnswers.wrongCount} · 部分正确 ${wrongAnswers.partialCount}`
+              }
               accent="garnet"
             />
           </div>
@@ -221,12 +259,13 @@ export default function Home() {
               subtitle="按主题成册刷题，每本独立记录进度"
               icon={IconBook}
               metricValue={String(totalBookFinished)}
-              metricLabel={"/ " + totalBookQuestions + " 题已完成"}
+              metricLabel={"/ " + totalBookQuestions + " 题已作答"}
               accent="blue"
               footer={
                 <div className="flex flex-col gap-2">
-                  {questionBooks.slice(0, 3).map((b) => {
-                    const pct = Math.round((b.finished / b.total) * 100);
+                  {books.slice(0, 3).map((b) => {
+                    const pct =
+                      b.total > 0 ? Math.round((b.finished / b.total) * 100) : 0;
                     return (
                       <div key={b.id}>
                         <div className="flex items-baseline justify-between gap-2 text-[11px]">
@@ -251,25 +290,29 @@ export default function Home() {
             <ModuleCard
               href="/wrong-answers"
               title="错题库"
-              subtitle="AI 判定为错误或部分正确的题目，按到期时间安排复习"
+              subtitle="最近一次判定为错误或部分正确的题目，集中复习"
               icon={IconWrong}
-              metricValue={String(wrongAnswerBank.total)}
-              metricLabel={"题 · 今日到期 " + wrongAnswerBank.dueToday}
+              metricValue={String(wrongAnswers.total)}
+              metricLabel="题待复习"
               accent="garnet"
               footer={
-                <ul className="flex flex-col gap-1.5">
-                  {wrongAnswerBank.byCategory.slice(0, 4).map((c) => (
-                    <li
-                      key={c.category}
-                      className="flex items-baseline justify-between gap-2 text-[11px]"
-                    >
-                      <span className="truncate text-ink-2">{c.category}</span>
-                      <span className="tnum shrink-0 font-medium text-brand-garnet">
-                        {c.count}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                wrongAnswers.byCategory.length > 0 ? (
+                  <ul className="flex flex-col gap-1.5">
+                    {wrongAnswers.byCategory.slice(0, 4).map((c) => (
+                      <li
+                        key={c.category}
+                        className="flex items-baseline justify-between gap-2 text-[11px]"
+                      >
+                        <span className="truncate text-ink-2">{c.category}</span>
+                        <span className="tnum shrink-0 font-medium text-brand-garnet">
+                          {c.count}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[11px] text-ink-muted">暂无错题记录</p>
+                )
               }
             />
 
@@ -325,33 +368,38 @@ export default function Home() {
               <h2 className="text-[15px] font-semibold text-ink">最近作答</h2>
               <span className="text-[12px] text-ink-muted">AI 批改结果</span>
             </div>
-            <ul className="divide-y divide-hairline">
-              {recentAttempts.map((a) => (
-                <li
-                  key={a.id}
-                  className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate text-[13px] text-ink">
-                      {a.questionTitle}
+            {recentAttempts.length > 0 ? (
+              <ul className="divide-y divide-hairline">
+                {recentAttempts.map((a) => (
+                  <li
+                    key={a.id}
+                    className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-[13px] text-ink">
+                        {a.questionTitle}
+                      </div>
+                      <div className="mt-1 flex items-center gap-2 text-[11px] text-ink-muted">
+                        <span>{a.category}</span>
+                        <span aria-hidden="true">·</span>
+                        <span className="tnum">{a.answeredAt.slice(0, 10)}</span>
+                      </div>
                     </div>
-                    <div className="mt-1 flex items-center gap-2 text-[11px] text-ink-muted">
-                      <span>{a.category}</span>
-                      <span aria-hidden="true">·</span>
-                      <span className="tnum">{a.answeredAt.slice(0, 10)}</span>
-                    </div>
-                  </div>
-                  <VerdictPill verdict={a.verdict} />
-                </li>
-              ))}
-            </ul>
+                    <VerdictPill verdict={a.verdict} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="py-6 text-center text-[12px] text-ink-muted">
+                还没有作答记录。从题本里挑一道题开始吧。
+              </p>
+            )}
           </div>
         </section>
 
         <p className="mt-6 text-center text-[11px] text-ink-muted">
-          当前为本地假数据（
-          <code className="font-mono">lib/mock-data.ts</code>
-          ），阶段 1 接入 Prisma 与 Claude API 后替换。
+          数据来源：
+          {source === "db" ? "本地 SQLite 数据库" : "只读种子数据（未配置数据库）"}
         </p>
       </main>
     </div>

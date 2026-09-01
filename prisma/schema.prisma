@@ -1,0 +1,79 @@
+// Prisma schema —— 本地 SQLite。
+//
+// 两点 SQLite 限制（见 prisma-database-setup 的 sqlite 参考）：
+//   1. 不支持枚举 —— category / difficulty / aiVerdict 用 String，
+//      取值由 lib/types.ts 的联合类型约束。
+//   2. 不支持标量数组 —— README 数据模型里的 followUps String[] 改为
+//      存 JSON 字符串，读写经 lib/db.ts 的辅助函数。
+//
+// datasource 的 url 不写在这里，由 prisma7.config.ts 从环境变量读取（Prisma 7 约定）。
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// 题本：一组按主题成册的题目，对应百词斩「单词书」的概念
+model QuestionBook {
+  id          String     @id
+  name        String
+  description String
+  /// 展示顺序，小的在前
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  questions   Question[]
+}
+
+model Question {
+  id      String  @id @default(cuid())
+  title   String
+  content String
+
+  /// ML 基础 | 深度学习 | LLM / 生成式 | ML 系统设计 | Coding | Behavioral
+  category String
+  /// 入门 | 进阶 | 困难
+  difficulty String
+
+  /// 供 AI 批改作参照的参考答案
+  referenceAnswer String
+  /// 题目来源，便于追溯是哪次导入
+  source String
+
+  bookId String?
+  book   QuestionBook? @relation(fields: [bookId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  attempts  Attempt[]
+
+  @@index([category])
+  @@index([difficulty])
+  @@index([bookId])
+}
+
+model Attempt {
+  id String @id @default(cuid())
+
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  userAnswer String
+
+  /// correct | partial | wrong；为空表示还没批改
+  aiVerdict  String?
+  aiFeedback String?
+  /// AI 追问列表的 JSON 字符串（SQLite 无标量数组）
+  followUps String?
+
+  /// 本次作答耗时（秒）。用于「今日用时」统计，为空表示未记录。
+  durationSec Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([questionId])
+  @@index([createdAt])
+  @@index([aiVerdict])
+}
