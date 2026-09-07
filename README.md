@@ -135,23 +135,28 @@ mle-ai-booster/
 │   ├── layout.tsx             # 根布局：字体、metadata
 │   ├── globals.css            # 设计令牌（品牌红蓝 / 图表标记色 / 状态色）+ Tailwind
 │   ├── page.tsx               # 主界面 dashboard
-│   ├── books/                 # MLE 题本（阶段 1）
-│   ├── wrong-answers/         # 错题库（阶段 1）
-│   ├── classifier/            # MLE 题库分类器（阶段 1）
-│   └── api/                   # 待做：questions / answers / grade
+│   ├── books/                 # 题本列表
+│   │   └── [bookId]/          # 题本详情：本册题目列表
+│   ├── questions/[id]/        # 题目详情：题干 + 参考答案 + 历史作答
+│   ├── wrong-answers/         # 错题库
+│   ├── classifier/            # 分类器：分类 × 难度 × 状态 三维筛选
+│   ├── random/route.ts        # 随机抽一道值得练的题（302 到题目详情）
+│   └── api/                   # 待做：answers / grade
 ├── components/                # 展示组件，全部为 server component
 │   ├── BrandMark.tsx          # blaugrana 竖条纹品牌标记
+│   ├── SiteHeader.tsx         # 各页共用顶栏
+│   ├── QuestionList.tsx       # 题目列表 + 难度标签
 │   ├── ProgressRing.tsx       # 今日计划进度环（meter）
 │   ├── StatTile.tsx           # KPI 小卡
 │   ├── ModuleCard.tsx         # 三大入口模块卡
 │   ├── MasteryBars.tsx        # 分类掌握度（单色相 meter）
 │   ├── WeeklyBars.tsx         # 近 7 天刷题量（单序列柱状图）
-│   ├── VerdictPill.tsx        # AI 判定状态标签
-│   └── ComingSoon.tsx         # 未完成模块的占位页
+│   └── VerdictPill.tsx        # 判定状态标签
 ├── lib/
 │   ├── types.ts               # 领域类型 + 统计口径相关的展示类型
 │   ├── db.ts                  # Prisma client（懒加载）+ followUps 序列化
-│   ├── data.ts                # 「有库走库 / 无库降级」的唯一分叉点
+│   ├── data.ts                # dashboard 数据：「有库走库 / 无库降级」分叉点
+│   ├── questions.ts           # 题目浏览查询：列表 / 筛选 / 详情 / 随机
 │   ├── generated/prisma/      # prisma generate 产物，已 gitignore
 │   └── llm.ts                 # 待做：Claude API 封装
 ├── scripts/
@@ -229,8 +234,9 @@ npm run db:seed
 - **阶段 1（进行中）**：跑通最小闭环。
   - [x] 本地 SQLite + Prisma + 种子题库（4 题本 / 78 题）
   - [x] 主界面 dashboard 接真实数据，云端降级为只读
-  - [ ] 题本 / 错题库 / 分类器三个模块页
-  - [ ] 答题页 + `/api/grade` AI 批改
+  - [x] 题本 / 题本详情 / 题目详情 / 错题库 / 分类器 五个页面（浏览闭环）
+  - [ ] 答题：提交回答并落库（先做自评，不接 API）
+  - [ ] `/api/grade` AI 批改（需要 ANTHROPIC_API_KEY，会产生费用）
 - **阶段 2**：历史记录 / 薄弱知识点统计、更好的 prompt 设计、追问式多轮对话。
 - **阶段 3（按需）**：题库自动化更新（爬虫/定时任务）、部署上线。
 - **阶段 4（按需，视是否要面向他人开放）**：用户账号体系、多用户数据隔离。

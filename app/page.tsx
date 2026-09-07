@@ -189,13 +189,14 @@ export default async function Home() {
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link
-                    href="/books"
+                    href={activeBook ? `/books/${activeBook.id}` : "/books"}
                     className="rounded-md bg-brand-blue px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-brand-blue-deep"
                   >
                     {activeBook ? `Continue ${activeBook.name}` : "Pick a book"}
                   </Link>
                   <Link
-                    href="/classifier"
+                    href="/random"
+                    prefetch={false}
                     className="rounded-md border border-hairline px-3 py-1.5 text-[13px] font-medium text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
                   >
                     Random question
