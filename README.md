@@ -154,13 +154,15 @@ mle-ai-booster/
 │   ├── data.ts                # 「有库走库 / 无库降级」的唯一分叉点
 │   ├── generated/prisma/      # prisma generate 产物，已 gitignore
 │   └── llm.ts                 # 待做：Claude API 封装
+├── scripts/
+│   └── merge-questions.mjs    # 批量合并题目到种子文件，带校验与去重
 ├── prisma/
 │   ├── schema.prisma
 │   ├── migrations/
 │   └── seed.ts                # 种子脚本，幂等
 ├── prisma7.config.ts          # Prisma 7 配置：schema 路径 / datasource / seed 命令
 └── data/
-    └── seed-questions.json    # 4 个题本 + 22 道种子题
+    └── seed-questions.json    # 4 个题本 + 78 道种子题
 ```
 
 ### 界面设计约定
@@ -193,11 +195,39 @@ mle-ai-booster/
 - 预留 `src/lib/ingest/` 目录和统一的"导入一批 Question"函数签名，后续无论是写爬虫、调用第三方题库 API，还是接入 RSS/社区帖子抓取，都只需实现同一个接口，不影响上层。
 - 爬虫的具体技术方案（目标网站、反爬策略、更新频率、去重）留到确定数据源之后再设计，避免过早决策。
 
+### 扩充题库
+
+题目写在 `data/seed-questions.json`。批量添加时不要手改这个文件，用合并脚本：
+
+```bash
+node scripts/merge-questions.mjs <batch.json> [...更多批次]
+npm run db:seed
+```
+
+批次文件是一个 JSON 数组，每个元素需要 `bookId` / `title` / `content` / `category` / `difficulty` / `referenceAnswer`（`source` 可省略，默认 `seed/manual`）。脚本会：
+
+- 校验 `category` 和 `difficulty` 是否在允许取值内，`bookId` 是否存在 —— 写错直接失败退出，而不是悄悄在 dashboard 上多出一个新分类
+- 按 `title` 去重（与 seed 脚本同一个键），所以**重复跑同一批次是无操作**，不会产生重复题目
+- 打印合并后的分类与难度分布
+
+当前分布（78 题）：
+
+| 分类 | Easy | Medium | Hard | 合计 |
+|---|---|---|---|---|
+| ML Fundamentals | 5 | 10 | 3 | 18 |
+| Deep Learning | 3 | 9 | 4 | 16 |
+| LLM / GenAI | 2 | 9 | 5 | 16 |
+| ML System Design | 1 | 7 | 6 | 14 |
+| Coding | 1 | 6 | 1 | 8 |
+| Behavioral | 2 | 4 | 0 | 6 |
+
+**参考答案是这个题库的核心资产** —— AI 批改的准确性直接取决于它。写新题时 `referenceAnswer` 要包含判分所需的全部要点，而不只是一个简短结论，否则批改会把「答得对但没提到某点」误判为错误。
+
 ## 8. 路线图
 
 - **阶段 0（已完成）**：架构设计、README、技术选型确认、CI/CD、主界面 dashboard（假数据）。
 - **阶段 1（进行中）**：跑通最小闭环。
-  - [x] 本地 SQLite + Prisma + 种子题库（4 题本 / 22 题）
+  - [x] 本地 SQLite + Prisma + 种子题库（4 题本 / 78 题）
   - [x] 主界面 dashboard 接真实数据，云端降级为只读
   - [ ] 题本 / 错题库 / 分类器三个模块页
   - [ ] 答题页 + `/api/grade` AI 批改
@@ -230,7 +260,7 @@ npm run build
 ```bash
 cp .env.example .env      # 或手动创建，内容见下
 npm run db:migrate        # 建库 + 应用 migration
-npm run db:seed           # 导入 4 个题本 + 22 道题 + 一批作答记录
+npm run db:seed           # 导入 4 个题本 + 78 道题 + 一批作答记录
 ```
 
 `.env` 只需要一行（这个文件不入库）：

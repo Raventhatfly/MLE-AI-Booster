@@ -223,6 +223,510 @@
       "difficulty": "Medium",
       "referenceAnswer": "The key is translating 'not feasible' into a quantified boundary that can be discussed, rather than a flat refusal. Steps: (1) Confirm the underlying business goal — the metric is usually a proxy, and another path may reach the same goal. (2) State the ceiling of the current approach with evidence: the information content of available features, label quality limits, or a hard latency budget. (3) Offer tiered options — what level is reachable for what investment, with timelines and risks. (4) If they still insist, document the assumptions and risks explicitly, execute their decision, and agree on a mid-point checkpoint. The goal is to supply the basis for a decision, not to make the decision for them.",
       "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "Explain precision and recall to a non-technical stakeholder, then say when you would trade one for the other.",
+      "content": "Define both metrics in plain language, then give two concrete products where you would deliberately favor one over the other.",
+      "category": "ML Fundamentals",
+      "difficulty": "Easy",
+      "referenceAnswer": "Precision answers: of everything we flagged, how much was actually right. Recall answers: of everything that was actually right, how much did we catch. Favor precision when a false positive is expensive or erodes trust - a spam filter that sends a real invoice to junk, or an automated account ban. Favor recall when a miss is expensive - cancer screening, fraud detection, or safety alerts, where a human reviews the flagged set afterward so false positives are cheap. The honest framing in an interview is that you cannot maximize both; you pick the operating point from the relative cost of the two error types, then report the other metric alongside it.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "What is the difference between parameters and hyperparameters? Give examples.",
+      "content": "Define each, explain who or what sets them, and give three examples of each.",
+      "category": "ML Fundamentals",
+      "difficulty": "Easy",
+      "referenceAnswer": "Parameters are learned from data by the optimization process - linear regression coefficients, neural network weights and biases, the split thresholds inside a fitted decision tree. Hyperparameters are set before or outside training and control how learning happens - learning rate, regularization strength lambda, number of trees, max depth, batch size, number of layers. The practical distinction that matters: parameters are fit on the training set, hyperparameters are selected on a validation set. Tuning hyperparameters against the test set is a form of leakage, which is why you need three splits or nested cross-validation when you tune heavily.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "Why is accuracy a bad metric for imbalanced classification? What would you report instead?",
+      "content": "Explain the failure mode concretely and list the metrics you would report on a dashboard instead.",
+      "category": "ML Fundamentals",
+      "difficulty": "Medium",
+      "referenceAnswer": "With 1 percent positives, a model that always predicts negative scores 99 percent accuracy while being completely useless. Accuracy is dominated by the majority class and hides all the behavior you care about. Report instead: precision, recall, and F1 at your chosen operating threshold; PR-AUC for a threshold-independent view; the full confusion matrix so absolute error counts are visible; and recall at a fixed precision (or precision at fixed recall) matched to the business constraint. Also report a baseline - the always-negative model - so reviewers can see the lift. Balanced accuracy or Matthews correlation coefficient are reasonable single-number alternatives if you need one.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "Your model probability outputs are not calibrated. What does that mean, how do you detect it, and how do you fix it?",
+      "content": "Define calibration, describe how you would measure it, and list correction methods with their tradeoffs.",
+      "category": "ML Fundamentals",
+      "difficulty": "Medium",
+      "referenceAnswer": "A model is calibrated if among all samples it scores 0.7, about 70 percent are actually positive. Many strong classifiers are not calibrated - gradient boosting tends to be overconfident at the extremes, and SVMs produce scores that are not probabilities at all. Detect it with a reliability diagram: bin predictions and plot mean predicted probability against observed frequency, and summarize with expected calibration error or Brier score. Fix it with a post-hoc calibrator fitted on a held-out set: Platt scaling (logistic regression on the scores) is low-variance and works with little data but assumes a sigmoid shape; isotonic regression is non-parametric and more flexible but needs more data and can overfit. This matters whenever you use probabilities for expected-value decisions such as cost-based thresholding or bidding.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "When would you use a tree ensemble over a neural network for tabular data, and why?",
+      "content": "Give the decision criteria and the underlying reasons, not just a preference.",
+      "category": "ML Fundamentals",
+      "difficulty": "Medium",
+      "referenceAnswer": "Default to gradient-boosted trees for tabular data. Reasons: they handle heterogeneous feature scales and types without preprocessing; they are invariant to monotone feature transformations so no normalization is needed; they capture non-smooth, axis-aligned decision boundaries which is what most tabular relationships look like; they need far less hyperparameter tuning to reach most of the achievable performance; and they train in minutes on CPU. Neural networks become competitive when you have very large datasets, high-cardinality categorical features where learned embeddings help, multimodal inputs you want to fuse (text or images alongside the table), or you need transfer learning or a shared representation across tasks. The honest answer in an interview is that on a standard tabular benchmark, well-tuned GBDT still usually wins or ties, and it wins on engineering cost by a wide margin.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "Explain the curse of dimensionality and its practical consequences for modeling.",
+      "content": "Explain what happens geometrically as dimension grows and what it means for the algorithms you choose.",
+      "category": "ML Fundamentals",
+      "difficulty": "Medium",
+      "referenceAnswer": "As dimension grows, the volume of the space grows exponentially while your sample size does not, so data becomes sparse: any fixed number of points fills a vanishing fraction of the space. Two concrete consequences. First, distance concentration - the ratio between the nearest and farthest neighbor distances approaches one, so distance-based methods like kNN and k-means lose discriminative power. Second, the sample complexity needed to cover the space grows exponentially, so non-parametric methods that rely on local neighborhoods need impractical amounts of data. Practical responses: dimensionality reduction (PCA, learned embeddings), feature selection, strong regularization to impose structure, or switching to methods that assume structure rather than local smoothness - linear models, trees with feature subsampling, or models that exploit known invariances.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "How do you handle missing values? When is imputation the wrong answer?",
+      "content": "List strategies and explain the assumption each one makes, then give a case where imputing is actively harmful.",
+      "category": "ML Fundamentals",
+      "difficulty": "Medium",
+      "referenceAnswer": "Start by asking why the value is missing. Missing completely at random means dropping or imputing is unbiased. Missing at random (depends on observed features) means model-based imputation can work. Missing not at random (depends on the unobserved value itself) means any imputation introduces bias. Strategies: drop rows (only viable if missingness is rare and MCAR); mean or median fill (fast, shrinks variance, distorts relationships); model-based imputation such as kNN or iterative imputation (better, but must be fit on the training set only or you leak); and adding an explicit missing-indicator column. Imputation is the wrong answer when missingness itself is informative - if income is missing mainly for unemployed applicants, filling in the median erases the strongest signal in the data. In that case encode missingness as its own category or let a tree model handle it natively, which is what LightGBM and XGBoost do.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "What is regularization actually doing? Connect it to the bias-variance tradeoff and to the Bayesian view.",
+      "content": "Explain regularization from at least two perspectives rather than just describing the penalty term.",
+      "category": "ML Fundamentals",
+      "difficulty": "Medium",
+      "referenceAnswer": "Mechanically, regularization adds a penalty on model complexity to the loss, shrinking the space of functions the optimizer will settle on. In bias-variance terms, it deliberately increases bias to buy a larger reduction in variance, which lowers total expected error when the model is over-parameterized relative to the data. From the Bayesian view, an L2 penalty is exactly the log of a zero-mean Gaussian prior on the weights and L1 corresponds to a Laplace prior, so regularized fitting is MAP estimation rather than maximum likelihood - the strength lambda encodes how confident the prior is. This view explains why more data weakens the effective regularization: the likelihood term grows with n while the prior does not. Beyond norm penalties, dropout, early stopping, data augmentation, and adding noise are all regularizers under the same logic.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "Explain why the maximum likelihood estimate of variance is biased, and what the correction is.",
+      "content": "Show where the bias comes from and state the corrected estimator.",
+      "category": "ML Fundamentals",
+      "difficulty": "Hard",
+      "referenceAnswer": "The MLE for the variance of a Gaussian divides the sum of squared deviations by n, using the sample mean in place of the true mean. Because the sample mean is itself fit to the data, it sits closer to the data than the true mean does, so the squared deviations are systematically too small. Formally, the expectation of that estimator is (n-1)/n times sigma squared, so it underestimates by that factor. The unbiased correction divides by n-1 instead - Bessel correction - because one degree of freedom was consumed estimating the mean. The general principle transfers: whenever you evaluate a fit using parameters estimated on the same data, the resulting error estimate is optimistic. This is the same reason training error underestimates generalization error, and it motivates AIC-style complexity corrections and held-out validation.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "You need to compare two models but your evaluation set is small. How do you decide whether the difference is real?",
+      "content": "Describe how you would establish that an observed metric difference is not noise.",
+      "category": "ML Fundamentals",
+      "difficulty": "Hard",
+      "referenceAnswer": "Do not compare two point estimates. Quantify the uncertainty first. Options: bootstrap the evaluation set (resample with replacement a few thousand times, recompute the metric difference each time, and read off a confidence interval for the difference); use a paired test on per-sample outcomes since both models see the same examples, which removes sample-level variance and gives much more power than an unpaired comparison - McNemar test is the standard choice for paired binary classification; and repeat over multiple training seeds if the training procedure itself is stochastic, because seed variance is often larger than the difference being claimed. Also decide the minimum effect size that would change your decision before you look, so you are not chasing a 0.2 percent improvement that costs twice the inference budget. Report the interval, not just the winner.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "What is Simpson paradox and how would you detect it in a model evaluation?",
+      "content": "Define it, give a concrete ML example, and explain how you would catch it in practice.",
+      "category": "ML Fundamentals",
+      "difficulty": "Hard",
+      "referenceAnswer": "Simpson paradox is when a trend that holds within every subgroup reverses when the subgroups are pooled, because subgroup size and base rate are correlated with the treatment. A concrete ML example: model B beats model A on the aggregate test set, but model A is better on both the mobile and desktop segments individually - because the test set has a different mobile-to-desktop mix than production, and mobile queries are intrinsically harder. To detect it, always slice evaluation by the dimensions that plausibly shift: platform, geography, user tenure, traffic source, time period. If the aggregate conclusion disagrees with the per-slice conclusions, the pooling is doing the work, not the model. The deeper fix is to make sure the evaluation set matches the production mix, or to report a reweighted metric where slice weights reflect real traffic.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "What is the difference between bagging and boosting?",
+      "content": "Compare how each builds its ensemble and what error component each primarily reduces.",
+      "category": "ML Fundamentals",
+      "difficulty": "Easy",
+      "referenceAnswer": "Bagging trains many models independently on bootstrap resamples and averages them. Because the models are trained in parallel and are roughly independent, averaging mainly reduces variance while leaving bias unchanged - which is why bagging pairs well with high-variance, low-bias base learners like deep unpruned trees. Random forests add feature subsampling to further decorrelate the trees. Boosting trains models sequentially, each one fitting the residual errors of the ensemble so far, so it mainly reduces bias and can turn weak learners into a strong one - which is why the base learners are typically shallow trees. Consequences: bagging is embarrassingly parallel and hard to overfit by adding more trees; boosting is sequential and will overfit if you add too many rounds, so it needs early stopping on a validation set.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "Explain what a p-value is and one common way it is misinterpreted in A/B tests.",
+      "content": "State the correct definition and name a misinterpretation you have seen in practice.",
+      "category": "ML Fundamentals",
+      "difficulty": "Medium",
+      "referenceAnswer": "A p-value is the probability of observing a result at least as extreme as the one you got, assuming the null hypothesis is true. It is a statement about data given a hypothesis, not about a hypothesis given data. The most common misinterpretation is treating p equals 0.03 as a 3 percent chance that the null is true, or as a 97 percent chance the treatment works - neither follows without a prior. A second, more damaging one in practice is peeking: checking the test repeatedly and stopping as soon as p drops below 0.05, which inflates the false positive rate far above 5 percent because you get many chances to cross the line. Fixes are fixing the sample size in advance from a power calculation, or using sequential testing methods designed for continuous monitoring, such as always-valid confidence sequences.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "dl-principles",
+      "title": "Why do we need non-linear activation functions at all?",
+      "content": "Explain what happens to a deep network if every activation is linear.",
+      "category": "Deep Learning",
+      "difficulty": "Easy",
+      "referenceAnswer": "A composition of linear maps is itself a linear map. If every layer is linear, a hundred-layer network collapses to a single equivalent matrix, so the whole model can only represent linear functions no matter how deep it is - all the extra parameters buy nothing in expressiveness. Non-linearities are what let the network build a hierarchy of features and approximate arbitrary functions, which is the content of the universal approximation theorem. Practical follow-up: this is also why the choice of non-linearity matters. Sigmoid and tanh saturate, so gradients vanish in deep stacks; ReLU keeps a constant gradient on the positive side, which is the main reason deep networks became trainable in practice.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "dl-principles",
+      "title": "What problem does dropout solve, and what changes between training and inference?",
+      "content": "Explain the mechanism, the intuition for why it works, and the inference-time adjustment.",
+      "category": "Deep Learning",
+      "difficulty": "Easy",
+      "referenceAnswer": "Dropout randomly zeros a fraction p of activations during training. Two intuitions for why it helps: it prevents co-adaptation, since no unit can rely on a specific other unit being present, forcing more redundant and robust features; and it approximates training an ensemble of exponentially many sub-networks that share weights. At inference dropout is turned off - you want a deterministic prediction using the full network. To keep the expected activation magnitude consistent between the two regimes you must rescale: the standard implementation is inverted dropout, which divides surviving activations by (1-p) during training so nothing needs scaling at inference. Forgetting to switch the model to eval mode is a classic bug that shows up as inference results that change run to run.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "dl-principles",
+      "title": "Why do residual connections make very deep networks trainable?",
+      "content": "Explain the effect on gradient flow and on what each block has to learn.",
+      "category": "Deep Learning",
+      "difficulty": "Medium",
+      "referenceAnswer": "A residual block computes x plus F(x) instead of F(x). Two consequences. On the backward pass, the derivative of the block contains an identity term, so the gradient has a direct path to earlier layers that is not multiplied by many small Jacobians - this defeats the exponential decay that causes vanishing gradients. On the forward side, the block only has to learn the residual correction rather than the whole mapping; if the optimal transformation for that depth is close to identity, the block can learn to output near zero, which is much easier than learning to reproduce the identity through a stack of weight matrices. This is why adding depth to a plain network eventually degrades training accuracy while residual networks keep improving - the degradation was an optimization problem, not overfitting.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "dl-principles",
+      "title": "Why is the attention score divided by the square root of the key dimension?",
+      "content": "Explain what goes wrong without the scaling factor.",
+      "category": "Deep Learning",
+      "difficulty": "Medium",
+      "referenceAnswer": "If query and key components are roughly independent with unit variance, their dot product over d dimensions has variance proportional to d, so the raw scores grow with the square root of d. Feeding large-magnitude logits into softmax pushes it toward a one-hot distribution: the largest score dominates and the output saturates. In that regime the softmax gradient is nearly zero for every entry, so attention stops learning early in training. Dividing by the square root of d normalizes the variance back to roughly one, keeping the logits in a range where softmax is smooth and gradients flow. It is the same reasoning behind careful weight initialization - keep the scale of intermediate quantities stable as dimensions grow.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "dl-principles",
+      "title": "What does multi-head attention buy over a single attention head with the same total dimension?",
+      "content": "Explain the representational argument, not just the mechanics of splitting and concatenating.",
+      "category": "Deep Learning",
+      "difficulty": "Medium",
+      "referenceAnswer": "A single softmax attention distribution can only put its mass in one place per query - it computes one weighted average. Splitting the same budget into h heads gives h independent attention distributions operating in different learned subspaces, so one head can attend to the syntactic dependency while another attends to a coreferent mention and a third to positional neighbors. Concatenating them lets the layer combine several relations in one step rather than needing extra depth. The cost is that each head has a smaller per-head dimension, so individual heads are lower-rank. Empirically many heads turn out to be prunable after training, which suggests the benefit is partly about optimization - giving the model many parallel hypotheses early in training - rather than purely about final capacity.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "dl-principles",
+      "title": "Explain learning rate warmup and why it is standard for Transformers.",
+      "content": "Describe the schedule and the failure mode it prevents.",
+      "category": "Deep Learning",
+      "difficulty": "Medium",
+      "referenceAnswer": "Warmup starts at a very small learning rate and ramps it up linearly over the first few thousand steps before handing off to a decay schedule. The failure it prevents: at initialization the model is far from any good region and gradient estimates from a single batch are poorly conditioned, so a large step can push parameters into a bad basin that training never recovers from. With adaptive optimizers there is a second, sharper reason - Adam second-moment estimates are computed from very few samples early on, so the adaptive denominator has huge variance and effective per-parameter step sizes can be wildly wrong. Warmup gives those running statistics time to stabilize. This is also why Transformers with pre-layer-norm are less warmup-sensitive than post-layer-norm ones: pre-LN keeps early gradient magnitudes better behaved.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "dl-principles",
+      "title": "Your training loss is decreasing but validation loss started rising. Walk through your response.",
+      "content": "Give an ordered diagnostic and remediation plan, not just the word overfitting.",
+      "category": "Deep Learning",
+      "difficulty": "Medium",
+      "referenceAnswer": "The pattern is classic overfitting, but confirm before treating. First check the gap magnitude and when it opened - if validation loss rises while validation accuracy is still improving, the model may just be getting overconfident on a few examples, which is a calibration issue rather than a capacity issue and early stopping on accuracy may be wrong. Then in rough order of cost: enable or strengthen regularization (weight decay, dropout, label smoothing); add data augmentation appropriate to the modality; reduce capacity or use early stopping at the validation minimum; get more data or better data if the training set is small. Also rule out the non-overfitting causes that look identical: a distribution mismatch between train and validation splits, a leaked feature that stops working on the validation slice, or a validation set too small to be stable.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "dl-principles",
+      "title": "Why does the softmax with cross-entropy have such a clean gradient? Derive it.",
+      "content": "Show the gradient of cross-entropy loss with respect to the pre-softmax logits and explain why the result matters.",
+      "category": "Deep Learning",
+      "difficulty": "Hard",
+      "referenceAnswer": "With logits z, softmax probabilities p, and one-hot target y, the cross-entropy loss is minus the log of the predicted probability of the true class. Differentiating the loss with respect to the logits gives exactly p minus y. The softmax Jacobian and the log in cross-entropy cancel, leaving prediction minus target. Why this matters: the gradient magnitude is bounded by one and is proportional to the error, so a badly wrong confident prediction produces a large but not exploding gradient, and a correct confident prediction produces a near-zero gradient. Contrast this with pairing softmax with mean squared error, where the softmax derivative term reintroduces a p(1-p) factor that vanishes when the model is confidently wrong - which is precisely when you most need a large gradient. That saturation is the main reason MSE is a poor loss for classification.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "dl-principles",
+      "title": "What is the difference between weight decay and L2 regularization in Adam?",
+      "content": "Explain why AdamW exists and when the distinction matters.",
+      "category": "Deep Learning",
+      "difficulty": "Hard",
+      "referenceAnswer": "With plain SGD, adding an L2 penalty to the loss and applying weight decay in the update rule are mathematically identical. With Adam they are not. If you add L2 to the loss, the penalty gradient flows through the adaptive normalization, so it gets divided by the per-parameter second-moment estimate. Parameters with large historical gradients receive a smaller effective decay, and parameters with small gradients receive a larger one - the opposite of what you want, since regularization strength now depends on gradient history rather than on the weight itself. AdamW decouples them: it computes the adaptive step from the data gradient only, then applies weight decay directly to the parameters as a separate multiplicative shrink. This matters most for large models trained with strong regularization, and is why AdamW is the default for Transformer pretraining.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "dl-principles",
+      "title": "Explain the difference between MQA, GQA, and standard multi-head attention, and why they exist.",
+      "content": "Describe the architectural change and the specific bottleneck it targets.",
+      "category": "Deep Learning",
+      "difficulty": "Hard",
+      "referenceAnswer": "Standard multi-head attention gives every head its own key and value projections. Multi-query attention keeps separate query heads but shares a single key and value head across all of them. Grouped-query attention is the middle ground: heads are partitioned into g groups, each sharing one key-value pair. The bottleneck they target is not compute but memory bandwidth during autoregressive decoding. At generation time each step processes one token, so arithmetic intensity is low and the step is dominated by reading the KV cache out of memory. Cutting the number of KV heads by a factor of h shrinks the cache and the bytes read per step by the same factor, which translates almost directly into throughput. The tradeoff is some quality loss with full MQA, which is why GQA is the common compromise - most of the memory saving with much less degradation.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "dl-principles",
+      "title": "What is label smoothing and when does it help or hurt?",
+      "content": "Explain the mechanism and give a case where you would not use it.",
+      "category": "Deep Learning",
+      "difficulty": "Medium",
+      "referenceAnswer": "Label smoothing replaces the one-hot target with a distribution that puts 1 minus epsilon on the true class and spreads epsilon across the rest. Because the target is no longer attainable, the model cannot drive the true-class logit to infinity, so it stops pushing confidence upward indefinitely. Effects: better calibration, a small regularization benefit, and empirically better accuracy on large classification benchmarks. It hurts in two situations. First, when you need the model as a teacher for knowledge distillation - smoothing collapses the relative structure among the non-target logits, which is exactly the dark knowledge the student learns from. Second, when downstream logic depends on raw confidence ranking within a narrow band, since smoothing compresses the top of the distribution. Also avoid it when labels are already noisy, since you are then smoothing on top of noise.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "llm-era",
+      "title": "What is the difference between temperature and top-p sampling?",
+      "content": "Explain what each parameter changes and when you would tune one versus the other.",
+      "category": "LLM / GenAI",
+      "difficulty": "Easy",
+      "referenceAnswer": "Temperature rescales the logits before softmax. Below one it sharpens the distribution toward the argmax; above one it flattens it. It changes the shape of the whole distribution, including the long tail. Top-p, or nucleus sampling, is a truncation rule: sort tokens by probability, keep the smallest set whose cumulative mass reaches p, renormalize, and sample from that set only. It adapts how many candidates survive to how confident the model is at that step. The practical difference is that high temperature can still sample a genuinely terrible token from the tail, while top-p cuts the tail off entirely. For factual or structured output use low temperature and a moderate top-p; for creative generation raise both. Tuning both aggressively at once makes behavior hard to reason about, so hold one fixed.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "llm-era",
+      "title": "What is a context window, and what actually happens when you exceed it?",
+      "content": "Explain the limit and the practical failure modes of working near it.",
+      "category": "LLM / GenAI",
+      "difficulty": "Easy",
+      "referenceAnswer": "The context window is the maximum number of tokens the model can attend over in one forward pass, covering prompt plus generated output together. Exceeding it is a hard error at the API level, or silent truncation if your framework trims for you - which is the more dangerous case, because the model then answers confidently from a prompt missing its most important part. Two softer failure modes matter even below the limit. Attention quality is not uniform across position: models reliably attend to the beginning and end of context and degrade in the middle, so burying key evidence mid-prompt hurts. And cost and latency scale with context length, with the KV cache growing linearly, so a large window is not free. Practical response: measure token counts explicitly, put the critical instruction and evidence near the ends, and retrieve less but better rather than stuffing the window.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "llm-era",
+      "title": "How would you chunk documents for RAG? What breaks if you get it wrong?",
+      "content": "Describe your chunking strategy and the failure modes of naive fixed-size splitting.",
+      "category": "LLM / GenAI",
+      "difficulty": "Medium",
+      "referenceAnswer": "Naive fixed-size character splitting breaks in two directions. Chunks that are too small lose the context needed to interpret them - a sentence saying it increased by 12 percent is useless without knowing what it refers to. Chunks that are too large dilute the embedding, since a single vector must represent several topics and matches nothing well. Worse, arbitrary boundaries cut sentences and tables in half. Better approach: split on document structure first (sections, headings, paragraphs), use a target size with overlap so a boundary never destroys a fact, and attach metadata such as the section title and document title to each chunk so retrieval and the prompt both keep the context. For tables and code, keep the unit intact rather than splitting by length. A strong pattern is small chunks for embedding and retrieval, then expand to the surrounding parent section when building the prompt, which gets precision in matching and context in generation.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "llm-era",
+      "title": "Why does hybrid retrieval usually beat pure vector search? Give a case where BM25 wins outright.",
+      "content": "Explain the complementary strengths and give concrete query types where each fails.",
+      "category": "LLM / GenAI",
+      "difficulty": "Medium",
+      "referenceAnswer": "Dense vector search matches on semantics, so it handles paraphrase and synonymy well but can miss exact tokens because rare strings are poorly represented in the embedding space. BM25 matches lexically, so it nails exact terms but fails when the query and document use different words for the same idea. BM25 wins outright on queries containing identifiers that carry no semantics: an error code, a SKU, a function name, a legal citation, a person name. Ask a vector index for error code E4021 and it happily returns semantically similar error discussions that are about something else. Hybrid retrieval runs both and fuses the rankings, commonly with reciprocal rank fusion, which needs no score calibration between the two systems. Adding a cross-encoder reranker on the fused top-k usually gives a further gain, because it scores query and document jointly instead of comparing independent vectors.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "llm-era",
+      "title": "Explain LoRA. Why does it work, and what does it not solve?",
+      "content": "Describe the mechanism, the reason low rank suffices, and the limits of the method.",
+      "category": "LLM / GenAI",
+      "difficulty": "Medium",
+      "referenceAnswer": "LoRA freezes the pretrained weights and learns a low-rank update, representing the change to a weight matrix as the product of two thin matrices with inner dimension r. Only those small matrices receive gradients, so optimizer state and memory drop by orders of magnitude, and at inference the product can be merged back into the base weights so there is no added latency. Why low rank suffices: adapting a pretrained model to a narrow task appears to require only a small change in a low-dimensional subspace, since the model already has the capabilities and fine-tuning is mostly eliciting and reweighting them. What it does not solve: it does not add knowledge the base model lacks, so it is the wrong tool for injecting facts - use retrieval for that. It does not remove the need for a good dataset; a few hundred high-quality examples beat tens of thousands of noisy ones. And serving many adapters at once adds real routing and memory-management complexity despite the small per-adapter size.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "llm-era",
+      "title": "How do you get reliable structured output from an LLM?",
+      "content": "List the techniques in order of reliability and explain what each one actually guarantees.",
+      "category": "LLM / GenAI",
+      "difficulty": "Medium",
+      "referenceAnswer": "In increasing order of guarantee. Prompting for JSON gives no guarantee at all and will eventually produce prose, a trailing comma, or a markdown fence. Few-shot examples improve the rate but still guarantee nothing. Tool or function calling with a declared schema is much stronger, since the provider steers generation toward the schema. Constrained decoding, where a grammar or state machine masks invalid tokens at each step, is the only approach that makes malformed output structurally impossible. Regardless of the method you still validate on receipt with a real schema validator, because valid JSON is not the same as semantically correct JSON - a required enum can still hold a value outside the allowed set. Design the retry path deliberately: on a validation failure, feed the specific error back and retry once, and have a defined fallback rather than an exception surfacing to the user.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "llm-era",
+      "title": "What is prompt injection, and why is output filtering not a sufficient defense?",
+      "content": "Define the attack, distinguish it from jailbreaking, and explain the structural difficulty.",
+      "category": "LLM / GenAI",
+      "difficulty": "Medium",
+      "referenceAnswer": "Prompt injection is when untrusted content that the model processes - a retrieved document, a web page, an email, a tool result - contains instructions that the model follows as if they came from the developer or user. It differs from jailbreaking, where the user themselves is the adversary trying to bypass policy; with injection the user is a victim. The structural difficulty is that the model has one channel: instructions and data arrive as the same token stream, so there is no reliable way for the model to know that text inside a retrieved document is data rather than a command. Output filtering is insufficient because the damage is often the action, not the text - if the model can call tools, an injected instruction that exfiltrates data or sends an email has already done harm before any output is filtered. Real defenses are architectural: least-privilege tool scopes, human confirmation for consequential actions, keeping untrusted content out of contexts that have tool access, and treating any model output derived from untrusted input as untrusted itself.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "llm-era",
+      "title": "Your LLM feature is too slow. What do you measure first, and what are your options?",
+      "content": "Describe the latency breakdown and the levers available at each stage.",
+      "category": "LLM / GenAI",
+      "difficulty": "Medium",
+      "referenceAnswer": "Break latency into time to first token and inter-token latency, because they have different causes and different fixes. Time to first token is dominated by prompt processing, so it scales with input length - the levers are shorter prompts, prompt caching for a shared prefix, and reducing retrieved context. Inter-token latency is dominated by memory bandwidth per decoding step and scales with output length - the levers are generating fewer tokens (ask for terse output, cap max tokens), a smaller or distilled model, quantization, and speculative decoding. Beyond the model itself: stream the response so perceived latency tracks time to first token rather than total time; parallelize independent calls instead of chaining them; and cache aggressively at the application level, since many production workloads have a heavy head of repeated queries. Measure before optimizing - in RAG systems the retrieval and reranking stages are often a larger share than people assume.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "llm-era",
+      "title": "Design an evaluation for a RAG system that separates retrieval quality from generation quality.",
+      "content": "Explain what you measure at each stage and why aggregate end-to-end scores are not enough.",
+      "category": "LLM / GenAI",
+      "difficulty": "Hard",
+      "referenceAnswer": "An end-to-end score tells you the system is worse without telling you which half to fix, and the two halves have completely different remedies. Measure retrieval independently with a labeled set mapping questions to the documents that actually contain the answer: report recall at k, which bounds everything downstream since the generator cannot answer from documents it never saw, plus MRR or NDCG for ranking quality. Measure generation conditional on retrieval by supplying gold context and scoring faithfulness - is every claim supported by the provided context - and answer correctness against a reference. The diagnostic power comes from the combination: high retrieval recall with low faithfulness points at the prompt or the model; low recall with high conditional faithfulness points at chunking, the embedding model, or the need for hybrid search. Add an unanswerable subset where the correct behavior is refusing, since a system that never abstains will score well on faithfulness while hallucinating on every out-of-scope query.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "llm-era",
+      "title": "What are the failure modes of using an LLM as a judge, and how do you mitigate each?",
+      "content": "List the specific biases and the concrete controls for them.",
+      "category": "LLM / GenAI",
+      "difficulty": "Hard",
+      "referenceAnswer": "Known failure modes with their mitigations. Position bias - the judge favors whichever response comes first; mitigate by running both orderings and averaging, or by discarding pairs where the verdict flips. Verbosity bias - longer answers score higher regardless of quality; mitigate with a rubric that scores specific dimensions and by checking score against length. Self-preference - a model rates its own family of outputs higher; mitigate by using a different model family as judge than the one being evaluated. Score drift - absolute one-to-five scores are unstable across runs and model versions; mitigate by preferring pairwise comparison and by pinning the judge model version. Rubric ambiguity - the judge invents its own criteria; mitigate with an explicit rubric and few-shot anchors for each score level. The overarching control is calibrating the judge against a human-labeled set and reporting agreement, so you know the judge error bar before trusting its verdicts on new data.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "llm-era",
+      "title": "Explain speculative decoding and the conditions under which it does not help.",
+      "content": "Describe the mechanism, why output quality is preserved, and when the speedup disappears.",
+      "category": "LLM / GenAI",
+      "difficulty": "Hard",
+      "referenceAnswer": "A small draft model proposes several tokens ahead cheaply. The large target model then verifies all of them in a single forward pass, since scoring k tokens in parallel costs roughly the same as generating one - decoding is memory-bandwidth bound, not compute bound. Accepted tokens are kept and the first rejection is resampled from a corrected distribution. The acceptance rule is constructed so the output distribution is provably identical to sampling from the target model alone, which is why this is a pure latency optimization and not a quality tradeoff. It stops helping when the acceptance rate is low, because rejected draft tokens are wasted work: that happens when the draft model is poorly aligned with the target, at high temperature where the target distribution is flat and agreement is unlikely, or on genuinely unpredictable content. It also does not help when you are compute bound rather than bandwidth bound - large batch serving - since the parallel verification no longer rides on spare capacity.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "llm-era",
+      "title": "When an LLM hallucinates, what are the distinct underlying causes? They need different fixes.",
+      "content": "Separate hallucination into its causes and give the appropriate response for each.",
+      "category": "LLM / GenAI",
+      "difficulty": "Medium",
+      "referenceAnswer": "Treating hallucination as one problem leads to trying one fix for everything. Distinct causes. Missing knowledge - the fact was never in training data, so the model interpolates something plausible; fix with retrieval. Stale knowledge - the fact was true at training time and has changed; fix with retrieval plus explicit dating of sources. Retrieval failure in a RAG system - the context did not contain the answer but the model answered anyway; fix by instructing and training toward abstention, and by measuring recall separately. Context neglect - the answer was present but the model relied on parametric knowledge instead, more likely with long contexts and buried evidence; fix by shortening context and requiring citations. Reasoning error - each fact is right but the composition is wrong; fix with decomposition or verification steps rather than more retrieval. Finally, forced answering - the product never lets the model say it does not know, which guarantees fabrication on out-of-scope queries; fix at the product level by making abstention an acceptable, well-presented outcome.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "mlsd",
+      "title": "Walk through how you would frame an ML problem before writing any modeling code.",
+      "content": "Describe the steps between receiving a vague business request and starting to build.",
+      "category": "ML System Design",
+      "difficulty": "Easy",
+      "referenceAnswer": "Sequence: clarify the business objective and how success is measured in business terms; decide whether ML is even the right tool, since many requests are better served by a rule or a product change; translate the business objective into an ML task with a concrete label definition and prediction unit; identify what data exists and how the label is obtained, including its delay; define an offline metric that correlates with the business metric, and state that assumption explicitly since it is usually the weakest link; establish a baseline, either the current system or a trivial heuristic, so improvement is measurable; and enumerate the constraints that will shape the design - latency budget, throughput, cost per prediction, interpretability or fairness requirements. The most common interview mistake is jumping to model architecture. The most common real-world mistake is not pinning down the label definition, because ambiguity there invalidates everything downstream.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "mlsd",
+      "title": "How do you decide between batch prediction and real-time inference?",
+      "content": "Give the decision criteria and describe a hybrid design.",
+      "category": "ML System Design",
+      "difficulty": "Medium",
+      "referenceAnswer": "Decide on three axes. First, does the input exist before the request? If predictions depend on request-time context - the current query, the item being viewed, the session - you need real-time. If the input is a stable entity like a user profile, you can precompute. Second, how fresh must the prediction be? A daily churn score tolerates batch; a fraud decision does not. Third, what is the cardinality? Precomputing for a hundred million users times a million items is infeasible, while a hundred million user-level scores is trivial. Batch is cheaper, simpler to operate, easy to backfill and audit, and fails gracefully. Real-time costs more and needs a serving path with latency SLOs and fallbacks. The common hybrid: precompute the expensive parts offline - user and item embeddings, aggregate features - store them in a low-latency store, and at request time do only the cheap combination and final scoring. This is exactly the two-tower retrieval pattern.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "mlsd",
+      "title": "How would you detect and respond to model drift in production?",
+      "content": "Distinguish the types of drift, explain what you can monitor without labels, and describe the response.",
+      "category": "ML System Design",
+      "difficulty": "Medium",
+      "referenceAnswer": "Separate the types, because they have different detectability. Covariate shift is a change in the input distribution and is detectable immediately without labels. Concept drift is a change in the relationship between inputs and label and requires labels to observe directly. Label shift is a change in the class prior. Without labels you can still monitor a lot: per-feature distribution distance against a training reference using PSI or KL, the prediction score distribution, the rate of nulls and out-of-range values, and feature freshness. These catch broken pipelines, which in practice cause more incidents than genuine drift. With labels, monitor rolling performance segmented by slice, accepting the label delay. Response ladder: alert and investigate, since a step change usually means a pipeline bug rather than drift; if genuine, retrain on recent data; if drift is continuous, move to scheduled retraining and make it a boring automated process; and set up shadow evaluation so a candidate model can be compared before promotion.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "mlsd",
+      "title": "Design the cold-start strategy for a recommendation system. Cover both new users and new items.",
+      "content": "Explain why cold start is two different problems and how you address each.",
+      "category": "ML System Design",
+      "difficulty": "Medium",
+      "referenceAnswer": "They are different problems with different fixes. New user: you have no interaction history, so collaborative signals are unavailable. Options are onboarding preferences collected explicitly, contextual signals available at first request such as device, locale, and referrer, popularity and trending as a default, and rapid online adaptation within the first session so the second recommendation already reflects the first click. New item: the item has no interactions so it will never be retrieved by collaborative filtering, creating a feedback loop where it can never earn any. Options are content-based retrieval from item metadata and text or image embeddings, deliberate exploration budget that injects new items into impressions to gather signal, and a two-tower model whose item tower consumes content features so it produces a usable embedding on day zero. The exploration piece is the part candidates usually miss: without a deliberate budget, the system is structurally incapable of learning about anything new.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "mlsd",
+      "title": "What is a multi-stage ranking architecture and why not just score everything with the best model?",
+      "content": "Explain the stages and the computational argument for the design.",
+      "category": "ML System Design",
+      "difficulty": "Medium",
+      "referenceAnswer": "Stages are retrieval, pre-ranking, ranking, and re-ranking. Retrieval takes millions of candidates to roughly a thousand using cheap methods such as ANN search over embeddings, at microseconds per candidate. Pre-ranking narrows to a few hundred with a small model. Ranking scores those with the heavy model using full features and cross features. Re-ranking adjusts the final list for diversity, business rules, and freshness, which requires looking at the list as a whole rather than scoring items independently. The reason you cannot score everything with the best model is a latency budget: with a hundred millisecond budget and a model costing a millisecond per candidate, you can afford roughly a hundred candidates, not ten million. The design spends compute where it discriminates most. The key tradeoff is consistency between stages - if the retrieval stage systematically drops items the ranker would have loved, no amount of ranker quality recovers them, which is why retrieval is usually trained or distilled against ranker scores.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "mlsd",
+      "title": "Your recommender optimizes click-through rate and engagement is up, but retention is falling. Diagnose it.",
+      "content": "Explain the likely mechanism and how you would change the system.",
+      "category": "ML System Design",
+      "difficulty": "Hard",
+      "referenceAnswer": "This is proxy metric divergence. CTR is a short-horizon proxy for value, and optimizing it hard selects for content that is maximally clickable rather than maximally valuable - clickbait, outrage, thumbnail exploitation - which produces a click followed by disappointment. Retention measures the accumulated result of those disappointments. Also suspect a feedback loop: the model learns from impressions it generated, so a narrow, sensational slice of the catalog gets reinforced and diversity collapses, reducing the reasons to come back. Responses: add downstream signals to the objective such as dwell time with a minimum threshold, completion rate, or explicit negative feedback, and consider a multi-objective loss with tuned weights; penalize immediate bounces so a click followed by a fast return counts against the item; introduce diversity and exploration constraints at re-ranking; and most importantly change the evaluation regime - run longer holdouts measuring retention directly, since any metric evaluated only over a short window will keep selecting for short-window behavior.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "mlsd",
+      "title": "How do you design a training data pipeline where labels arrive weeks after the prediction?",
+      "content": "Explain the problems delayed labels create and how you structure the system around them.",
+      "category": "ML System Design",
+      "difficulty": "Hard",
+      "referenceAnswer": "Delayed labels create three problems. First, you cannot evaluate recent performance, so monitoring must lean on unlabeled proxies and on early indicators that correlate with the final label. Second, naively joining predictions to labels at a fixed cutoff biases the dataset, because at any snapshot the positives that convert quickly are labeled and slow converters still look negative - training on that teaches the model that slow conversion is no conversion. Third, retraining cadence is bounded by label latency. Structural responses: log the exact feature snapshot at prediction time with a prediction id, so the eventual label can be joined to the features that were actually used rather than recomputed values; define an explicit attribution window and only treat rows as labeled once the window has fully elapsed, accepting the freshness cost; if you must use partial windows, model the delay distribution and reweight, or use a delayed-feedback loss that accounts for censoring; and keep a clear separation between the fast-moving unlabeled monitoring path and the slow labeled training path.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "mlsd",
+      "title": "Design an A/B test for a ranking model change. What are the traps specific to ranking systems?",
+      "content": "Cover the standard design plus the interference effects unique to marketplaces and feeds.",
+      "category": "ML System Design",
+      "difficulty": "Hard",
+      "referenceAnswer": "Standard design first: pick a primary metric and a small set of guardrails, compute the sample size from a power analysis for the minimum detectable effect, randomize at the right unit - user, not request, or the same user sees both systems and the experience is incoherent - and fix the duration in advance to cover weekly seasonality. Ranking-specific traps. Interference: in a two-sided marketplace treatment and control users compete for the same finite supply, so improving allocation for treatment can degrade control and inflate the measured lift; mitigate with cluster or market-level randomization. Novelty and primacy effects: engagement spikes on any visible change and decays, so short tests overstate; run long enough to see the plateau and analyze by user tenure. Feedback contamination: if both arms feed the same training pipeline, treatment behavior changes the data control learns from. Metric dilution: measuring across all users when only a small slice ever triggers the changed code path buries a real effect - define and analyze the triggered population explicitly.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "mlsd",
+      "title": "How would you serve a model that must respond in under 50 milliseconds at 10k QPS?",
+      "content": "Walk through the design decisions and where the time budget goes.",
+      "category": "ML System Design",
+      "difficulty": "Medium",
+      "referenceAnswer": "Start by budgeting the 50 milliseconds explicitly across network, feature fetch, model forward pass, and post-processing - feature fetching is usually the surprise, not the model. Design choices: precompute everything that does not depend on the request and store it in an in-memory or low-latency KV store; batch feature fetches into a single multi-get rather than n round trips; keep the model small enough to hit the budget, using distillation or quantization if needed, and prefer a compiled runtime such as ONNX Runtime or TensorRT over a Python training framework; use dynamic batching on the server to trade a little latency for large throughput gains, sized so the added queueing stays within budget. Operationally: measure p99 rather than mean, because 10k QPS means the tail is many users per second; set a hard timeout with a defined fallback such as a cached or heuristic response, since a slow answer is worse than a slightly worse fast one; and load-test at realistic concurrency, because per-request latency measured in isolation tells you nothing about behavior under queueing.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "mlsd",
+      "title": "What would you monitor for a deployed model beyond accuracy?",
+      "content": "List the monitoring layers and give an example alert for each.",
+      "category": "ML System Design",
+      "difficulty": "Medium",
+      "referenceAnswer": "Four layers. Infrastructure: latency percentiles, error rate, throughput, resource saturation - alert on p99 latency breaching the SLO. Data quality: null rates, out-of-range values, schema changes, feature freshness, and cardinality shifts in categorical features - alert when a feature is more than a set fraction null, which usually means an upstream pipeline broke. Model behavior without labels: prediction distribution shift, score drift, the rate of predictions hitting a decision boundary, and input distribution distance from the training reference - alert when the positive prediction rate moves outside a historical band. Business and model quality with labels: segmented performance, calibration, and the downstream business metric - alert on a sustained drop in a key slice, not just the aggregate, since Simpson-style pooling can hide a serious regression in a segment. Also monitor the fallback path: how often the system times out and serves the default, because a silently degrading dependency shows up there first.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "Implement softmax numerically stably. Why does the naive version break?",
+      "content": "Write the function and explain the overflow problem and the standard fix.",
+      "category": "Coding",
+      "difficulty": "Easy",
+      "referenceAnswer": "The naive version exponentiates the raw logits, so a logit of 1000 overflows to infinity in float32 and the subsequent division produces NaN. Large negative logits underflow to zero, which is harmless unless every entry does. The fix uses the shift invariance of softmax: subtracting any constant from all logits leaves the result unchanged, because the constant factors out of numerator and denominator. Subtract the max, so the largest exponent becomes exp(0) equals 1 and nothing overflows. Code: z = x - max(x); e = exp(z); return e / sum(e). For the log of the softmax, do not compute log(softmax(x)) - use the log-sum-exp form directly, z - log(sum(exp(z))), which avoids taking the log of a value that underflowed to zero. This is why frameworks provide a fused cross-entropy that takes logits rather than probabilities.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "Given prediction scores and binary labels, compute AUC without using a library.",
+      "content": "Describe an approach better than enumerating all pairs, and state its complexity.",
+      "category": "Coding",
+      "difficulty": "Medium",
+      "referenceAnswer": "AUC equals the probability that a randomly chosen positive is scored above a randomly chosen negative, so the definition suggests comparing all positive-negative pairs at O(P*N) cost. The efficient equivalent uses the rank identity: sort all samples by score ascending and assign ranks starting at 1, then AUC equals (sum of ranks of positives minus P*(P+1)/2) divided by (P*N). The subtraction removes the rank mass positives would have even if they were all at the bottom. The one detail people miss is ties: samples with equal scores must receive the average of the ranks they span, otherwise a model that outputs a constant scores something other than 0.5. Complexity is O(n log n), dominated by the sort. Edge cases to handle explicitly: no positives or no negatives, where AUC is undefined and should return NaN or raise rather than silently producing a number.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "Implement a sliding-window aggregation over a time series without recomputing each window.",
+      "content": "Compute a rolling mean and a rolling max over a stream, and state the complexity of each.",
+      "category": "Coding",
+      "difficulty": "Medium",
+      "referenceAnswer": "Rolling mean is straightforward with a running sum: add the entering element, subtract the leaving one, divide by window size - O(1) per step. The numerical caveat is that repeated addition and subtraction accumulates floating point error over long streams, so periodically recompute or use a compensated summation if precision matters. Rolling max cannot use the same trick, because removing the current max gives no information about the next one. Use a monotonic deque holding indices whose values are in decreasing order: before appending a new element, pop from the back while the back value is less than or equal to the new value, then append; pop from the front when its index falls outside the window; the front is always the window max. Each element is pushed and popped at most once, so it is amortized O(1) per step with O(k) memory. This pattern matters in feature engineering because rolling features over long histories are otherwise quadratic.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "Write a function to split a dataset into train and test by group, and explain why group-aware splitting matters.",
+      "content": "Implement the split given a list of group ids and a target test fraction, then explain the failure it prevents.",
+      "category": "Coding",
+      "difficulty": "Medium",
+      "referenceAnswer": "The requirement is that all rows sharing a group id land on the same side of the split. Implementation: collect the unique group ids, shuffle them with a fixed seed for reproducibility, then walk the shuffled list accumulating group sizes until the accumulated row count reaches the target test fraction, assigning those groups to test and the rest to train. Return index arrays, not copies. Note that you cannot hit the target fraction exactly when groups vary in size, so the function should return the achieved fraction or accept a tolerance. Why it matters: with a random row-level split, rows from the same user, patient, or document appear in both sets, and the model can score well by recognizing the entity rather than learning the pattern - inflating offline metrics in a way that vanishes in production on genuinely new entities. The same argument applies to cross-validation, which is why GroupKFold exists.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "You have a 50 GB CSV and 8 GB of RAM. Compute per-key aggregates. Describe your approach.",
+      "content": "Give a working approach and explain what determines whether it fits in memory.",
+      "category": "Coding",
+      "difficulty": "Hard",
+      "referenceAnswer": "The key question is the size of the output, not the input. If the number of distinct keys is small enough that the aggregate table fits in memory, stream the file in chunks and update a dictionary of running aggregates - one pass, constant memory in the input size. Use running formulations, so a mean is kept as sum and count, and a variance uses Welford so you never need two passes. If the key space is too large, options in increasing complexity: process by key partition, hashing each row to one of k output files in a first pass and then aggregating each partition independently in a second pass, which is the classic external group-by; use a columnar format and a query engine such as DuckDB or Polars that does out-of-core execution for you, which in practice is the right answer for a one-off; or convert the CSV to Parquet first, since column pruning and compression often shrink the working set by an order of magnitude. Mention that CSV parsing is usually the bottleneck, not the aggregation.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "Implement top-k selection from a large stream of scores. Why not sort?",
+      "content": "Give the algorithm, its complexity, and the memory argument.",
+      "category": "Coding",
+      "difficulty": "Medium",
+      "referenceAnswer": "Sorting is O(n log n) time and requires holding all n elements, which is impossible for a stream. Use a min-heap of size k: push the first k elements, then for each subsequent element compare against the heap root and, if larger, pop the root and push the new value. Complexity is O(n log k) time and O(k) memory, and it works on a stream of unknown length. For the offline case where all data is in memory and you only need the set rather than the order, quickselect gives expected O(n) via partitioning. Practical notes: define tie-breaking explicitly, since an unstable rule makes results non-reproducible across runs, which matters when this is the retrieval stage of a ranking system; and if k is close to n, sorting is actually faster, so the heap approach is for k much smaller than n.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "Describe a time you disagreed with a senior colleague on a technical decision.",
+      "content": "Use a concrete example and focus on how the disagreement was resolved.",
+      "category": "Behavioral",
+      "difficulty": "Easy",
+      "referenceAnswer": "A strong answer has four properties. It names a real, specific technical disagreement rather than a vague personality conflict. It shows you sought the reasoning behind their position before arguing yours - most disagreements dissolve once you learn the constraint they were optimizing for that you did not know about. It shows you moved the discussion toward evidence: proposing a small experiment, a benchmark, or a spike that would distinguish the two positions, rather than escalating opinion volume. And it states the outcome honestly, including the case where you were wrong or where you disagreed and committed. What sinks answers: framing yourself as the lone competent person, describing a disagreement where you simply won, or choosing an example so trivial it reveals no judgment. Interviewers are checking whether you can hold a position under pressure and also update on evidence - both, not either.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "How do you decide what to work on when everything is labeled urgent?",
+      "content": "Describe your prioritization approach with a real example.",
+      "category": "Behavioral",
+      "difficulty": "Medium",
+      "referenceAnswer": "A good answer shows an explicit framework rather than a claim of working harder. Useful elements: separating urgency from importance, and being able to name the thing you deliberately did not do; estimating impact and cost even roughly, so comparisons are possible - expected value per unit of effort beats gut feel; identifying what is reversible versus irreversible, since irreversible decisions deserve more deliberation and reversible ones should be made fast; recognizing blocking work, where unblocking three people beats an equal-sized solo task; and surfacing the tradeoff to stakeholders rather than silently choosing, so the person who owns the priority actually sets it. The strongest answers also mention checking whether the urgent thing is real - a surprising fraction of urgent requests dissolve when you ask what happens if it lands next week. Ground it in one concrete instance with the actual decision and outcome.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "Tell me about a project you would design differently if you started it again.",
+      "content": "Describe the original design, what you learned, and what you would change.",
+      "category": "Behavioral",
+      "difficulty": "Medium",
+      "referenceAnswer": "This question tests whether you extract transferable lessons or just recite events. Structure: describe the original decision and, importantly, why it was reasonable given what you knew then - retrospective judgment that ignores the original constraints reads as unreflective. Then name the specific signal that revealed the problem and when it appeared. Then state the concrete alternative design and why it would have handled that signal better. Finish with the generalizable rule you now apply, which is the actual payload of the answer. Strong examples in ML tend to be about foundations rather than modeling: not instrumenting the data pipeline early enough, not fixing the evaluation set before iterating, choosing a metric that diverged from the business goal, or building a complex system before validating that the simple version failed. Avoid answers that are secretly humblebrags or that blame external teams.",
+      "source": "seed/manual"
+    },
+    {
+      "bookId": "core-300",
+      "title": "How would you explain a model decision to a customer who is upset about the outcome?",
+      "content": "Describe your approach and what you would avoid saying.",
+      "category": "Behavioral",
+      "difficulty": "Medium",
+      "referenceAnswer": "The answer should show that you distinguish explanation from justification, and that you understand the stakes. Elements of a good response: acknowledge the impact on the person before explaining anything technical; explain in terms of the factors that mattered for their specific case, which is what local explanation methods like SHAP are for, rather than describing the model architecture; be honest about uncertainty and about the fact that the model can be wrong; and describe the recourse path - how a decision gets reviewed or appealed, and what the person can change. What to avoid: hiding behind the algorithm as though it were an authority with no owner, sharing enough detail to enable gaming the system, and claiming certainty the model does not have. In regulated domains such as credit, an adverse action explanation is a legal requirement with specific content rules, and knowing that distinction is a strong signal.",
+      "source": "seed/manual"
     }
   ]
 }
