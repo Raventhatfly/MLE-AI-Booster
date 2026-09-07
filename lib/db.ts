@@ -1,9 +1,15 @@
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
 
 import { PrismaClient } from "./generated/prisma/client";
 
 /**
  * Prisma client 单例。
+ *
+ * 驱动选型：libSQL 而不是 better-sqlite3。better-sqlite3 没有 win32 预编译
+ * 产物，在 Windows 上必须用 node-gyp + Visual Studio 从源码编译，导致全新
+ * clone 后 `npm ci` 直接失败（CI 是 Linux 所以一直是绿的，掩盖了这个问题）。
+ * libSQL 走 N-API 预编译包（@libsql/win32-x64-msvc 等），与 Node 版本解耦，
+ * 不需要任何编译器；而且将来要接 Turso 时是同一个 adapter，不用改代码。
  *
  * 三条约束（见 README「运行形态」一节）：
  *   1. 懒加载 —— 只有真正查询时才建连接。模块顶层不能 new PrismaClient()，
@@ -41,7 +47,7 @@ export function getPrisma(): PrismaClient {
   if (globalForPrisma.prisma) return globalForPrisma.prisma;
   if (cached) return cached;
 
-  const adapter = new PrismaBetterSqlite3({ url });
+  const adapter = new PrismaLibSql({ url });
   const client = new PrismaClient({ adapter });
 
   if (process.env.NODE_ENV !== "production") {

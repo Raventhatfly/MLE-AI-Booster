@@ -277,6 +277,17 @@ DATABASE_URL="file:./dev.db"
 | `npm run db:reset` | 删库重建并重跑 seed（数据会全部丢失） |
 | `npx prisma generate` | 手动重新生成 client（改完 schema 后必须跑，见下） |
 
+### 为什么用 libSQL 而不是 better-sqlite3
+
+Prisma 官方 SQLite 文档给的默认方案是 `better-sqlite3`，本项目**刻意不用**它：
+
+- `better-sqlite3` 的 GitHub release **没有任何 win32 预编译产物**，Windows 上必须用 node-gyp + Visual Studio 从源码编译。
+- 后果是**全新 clone 后 `npm ci` 直接失败**（`Could not find any Visual Studio installation to use`）。这个缺陷被 CI 完全掩盖了 —— CI 跑在 Linux 上，有预编译产物，一直是绿的。
+- `@libsql/client` 走 N-API 预编译包（`@libsql/win32-x64-msvc` 等），**与 Node 版本解耦，不需要任何编译器**。
+- 附带好处：将来要接 Turso（见上文的扩展路径）用的是同一个 adapter，代码不用改。
+
+代价是多了一层 libSQL 协议封装，本地文件访问比 better-sqlite3 的直接同步调用略慢；在单人自用规模下无感知。
+
 ### 规模上限与优化阈值（已实测，2026-09-01）
 
 结论先说：**题库变大不需要换数据库服务器。** 在临时副本上灌到 **10 万道题 + 30 万条作答**（库文件 441 MB）实测：
@@ -317,7 +328,7 @@ SQLite 的硬限制是**同一时刻只允许一个写入者**（WAL 模式下�
 ### Prisma 7 的几个坑（与 Prisma 6 不同，踩过了记下来）
 
 1. **npm 的 `latest` 标签指向 `8.0.0-rc.12`（一个 RC）**，稳定版在 `prev` 标签上。所以 `package.json` 里 `prisma` 和 `@prisma/client` 都用 `-E` 精确钉在 `7.10.0`，不要用 `^`，也不要跟着 CLI 的升级提示走。
-2. **必须用 driver adapter** —— SQLite 走 `@prisma/adapter-better-sqlite3` + `better-sqlite3`，`new PrismaClient({ adapter })`，不再是内置引擎自己连。
+2. **必须用 driver adapter** —— 本项目用 `@prisma/adapter-libsql` + `@libsql/client`，`new PrismaClient({ adapter })`，不再是内置引擎自己连。注意导出名是 `PrismaLibSql`（不是 `PrismaLibSQL`）。
 3. **`prisma migrate dev` 不再自动重新生成 client** —— 改完 schema 跑完 migrate 之后，必须手动 `npx prisma generate`，否则新字段会报 `Unknown argument`。
 4. **datasource 的 url 不写在 schema 里**，移到了 `prisma7.config.ts`。
 5. **`tsx` 不自动加载 `.env`** —— `prisma/seed.ts` 顶部显式 `import "dotenv/config"`，这样直接 `npx tsx prisma/seed.ts` 也能跑。
